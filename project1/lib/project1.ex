@@ -9,7 +9,7 @@ defmodule Project1 do
   end 
 
   def sha256Generator({status,value}) do
-       randomString=(to_string("shubhamagiwal92")<>SecureRandom.base64(8));
+       randomString=(to_string("shubhamagiwal92")<>SecureRandom.base64(12));
        hash=:crypto.hash(:sha256,randomString) |> Base.encode16
        if to_string(status)==to_string("false") do
             status=String.slice(hash,0..String.to_integer(value)-1) |> check ;
