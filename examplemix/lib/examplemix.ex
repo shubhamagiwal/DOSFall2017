@@ -57,9 +57,9 @@ defmodule Examplemix do
      #IO.puts "Hello world"
      #IO.puts "Hello World #{args}"
      #{:ok, ifs} = :inet.getif()
-     {:ok,basic_pid}=Examplemix.start_link
-     IO.inspect Examplemix.convertToSha256(basic_pid,"Shubham")
-     IO.inspect Examplemix.convertToSha256(basic_pid,"karan")
+     #{:ok,basic_pid}=Examplemix.start_link
+     #IO.inspect Examplemix.convertToSha256(basic_pid,"Shubham")
+     #IO.inspect Examplemix.convertToSha256(basic_pid,"karan")
      #IO.puts "The list of names before removal"
      #IO.inspect Examplemix.print(basic_pid)
      #Map.values(Examplemix.print(basic_pid)) |> Enum.each( fn(x) -> IO.puts x end)
@@ -71,6 +71,9 @@ defmodule Examplemix do
      #IO.inspect(ifs)
      #IO.inspect(:inet.ip_address)
      #IO.inspect(basic_pid)
+
+     {:ok,[{ipadd1,_,_},{_,_,_}]}=:inet.getif()
+     IO.puts ipadd1|> Tuple.to_list |> Enum.join(".") 
   end
 
 
