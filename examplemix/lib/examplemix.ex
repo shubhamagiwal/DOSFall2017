@@ -52,6 +52,24 @@ defmodule Examplemix do
       {:reply,new_state,new_state}
   end
 
+  def start_distributed(appname) do
+    unless Node.alive?() do
+      local_node_name = generate_name(appname)
+      {:ok, _} = Node.start(local_node_name)
+    end
+    cookie = Application.get_env(appname, :cookie)
+    Node.set_cookie(cookie)
+  end
+
+  def generate_name(appname) do
+    machine = Application.get_env(appname, :machine)
+    IO.inspect machine
+    hex = :erlang.monotonic_time() |>
+      :erlang.phash2(256) |>
+      Integer.to_string(16)
+    IO.puts String.to_atom("#{appname}-#{hex}@#{machine}")
+  end
+
  
   def main(args \\ []) do
      #IO.puts "Hello world"
@@ -73,7 +91,11 @@ defmodule Examplemix do
      #IO.inspect(basic_pid)
 
      {:ok,[{ipadd1,_,_},{_,_,_}]}=:inet.getif()
-     IO.puts ipadd1|> Tuple.to_list |> Enum.join(".") 
+     ipaddress= ipadd1|> Tuple.to_list |> Enum.join(".") 
+     IO.puts "awesome@"<>to_string(ipaddress)
+     {:ok,pid}=Node.start(String.to_atom("awesome@"<>to_string(ipaddress)))
+     IO.inspect Node.self()
+     IO.inspect Node.set_cookie(Node.self(),String.to_atom("awesome"))
   end
 
 
