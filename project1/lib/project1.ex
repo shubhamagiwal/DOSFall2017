@@ -33,7 +33,6 @@ defmodule Project1 do
  
   def main(args \\ []) do
        pid=Project1.Libfunctions.getIpAddress() |> Project1.Server.start |> Project1.Worker.startWorker
-       IO.inspect pid
        donotexit
       # ip_address_valid= to_string(args) |> ip_address_check |> sha256Generator #Check for the IP address validity and then pass it to sha256 generator       
   end
