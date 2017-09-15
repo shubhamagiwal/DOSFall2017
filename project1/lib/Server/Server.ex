@@ -6,7 +6,7 @@ defmodule Project1.Server do
      {:ok,serverpid}=Node.start(serverName)
      cookie=Application.get_env(:project1, :cookie)
      Node.set_cookie(cookie)
-     serverpid
+     Node.self
     end
 
 end
