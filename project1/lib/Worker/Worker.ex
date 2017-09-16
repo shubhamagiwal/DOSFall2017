@@ -3,6 +3,7 @@ defmodule Project1.Worker do
     
         def startWorker(tup_worker) do
             Node.spawn(elem(tup_worker,0),fn -> Project1.Worker.start_link(elem(tup_worker,1)) end)
+            donotexit
         end
 
         def start_link(k) do
@@ -44,6 +45,10 @@ defmodule Project1.Worker do
                    true->  IO.puts "#{randomString}  #{hash}"
                     _-> :ok
               end 
+          end
+
+          def donotexit do
+            donotexit 
           end
 
 end
