@@ -13,11 +13,11 @@ defmodule Project1.Client do
         IO.inspect Node.list() 
         :global.sync()
         send(:global.whereis_name(:server),{:ok,self})
-        IO.puts "Received from server"
-        receive do
-            {:ok,k}-> Project1.Worker.startWorker({Node.self,k})
 
+        receive do
+            {:ok,k}->Project1.Worker.startWorker({Node.self,k})
         end
+        donotexit
     end
 
     def generate_name(ipaddress) do
@@ -28,10 +28,8 @@ defmodule Project1.Client do
         String.to_atom("#{machine}-#{hex}@#{ipaddress}")
       end
 
-    def clientlister() do
-        receive do
-            {:ok,k}-> IO.puts k
-        end
+    def donotexit() do
+        donotexit
     end
 
 end
