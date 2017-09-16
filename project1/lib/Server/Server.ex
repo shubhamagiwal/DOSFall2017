@@ -6,6 +6,13 @@ defmodule Project1.Server do
      {:ok,serverpid}=Node.start(serverName)
      cookie=Application.get_env(:project1, :cookie)
      Node.set_cookie(cookie)
+     IO.inspect self
+     :global.register_name(:server,self)
+     
+     receive do
+        {:ok,pid}-> IO.inspect pid
+     end
+
      tup_worker={Node.self,elem(tuple,1)}
     end
 

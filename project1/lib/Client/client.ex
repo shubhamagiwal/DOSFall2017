@@ -10,7 +10,13 @@ defmodule Project1.Client do
 
     def connect_to_server(tuple)do
         IO.inspect Node.connect(String.to_atom(to_string("server@"<>elem(tuple,1)))); 
-        IO.inspect Node.list()  
+        IO.inspect Node.list() 
+        :global.sync()
+        #IO.inspect :global.whereis_name(:server);
+        send(:global.whereis_name(:server),{:ok,self})
+        receive do
+            {:ok,k}-> IO.puts to_string(k)
+        end
     end
 
     def generate_name(ipaddress) do
@@ -20,5 +26,11 @@ defmodule Project1.Client do
           Integer.to_string(16)
         String.to_atom("#{machine}-#{hex}@#{ipaddress}")
       end
+
+    def clientlister() do
+        receive do
+            {:ok,k}-> IO.puts k
+        end
+    end
 
 end

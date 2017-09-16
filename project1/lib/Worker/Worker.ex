@@ -19,7 +19,6 @@ defmodule Project1.Worker do
 
 
         def spawn_bitcoin(k) do
-            # pid=spawn(__MODULE__, :bitcoin_miner, [])
              send(spawn(__MODULE__, :bitcoin_miner, [k]),{:ok})
         end
 
