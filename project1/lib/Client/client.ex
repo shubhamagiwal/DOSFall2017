@@ -5,7 +5,12 @@ defmodule Project1.Client do
         {:ok,clientpid}=Node.start(clientName)
         cookie=Application.get_env(:project1, :cookie)
         Node.set_cookie(cookie)
-        IO.inspect clientpid
+        tuple={Node.self,ip_address}
+    end
+
+    def connect_to_server(tuple)do
+        IO.inspect Node.connect(String.to_atom(to_string("server@"<>elem(tuple,1)))); 
+        IO.inspect Node.list()  
     end
 
     def generate_name(ipaddress) do
