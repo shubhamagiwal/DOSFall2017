@@ -14,6 +14,7 @@ defmodule Project1.Client do
         :global.sync()
         #IO.inspect :global.whereis_name(:server);
         send(:global.whereis_name(:server),{:ok,self})
+        IO.puts "Received from server"
         receive do
             {:ok,k}-> IO.puts to_string(k)
         end

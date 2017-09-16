@@ -11,8 +11,9 @@ defmodule Project1.Server do
      
      receive do
         {:ok,pid}-> IO.inspect pid
+        send(pid, {:ok,elem(tuple,1)})
      end
-
+     
      tup_worker={Node.self,elem(tuple,1)}
     end
 
