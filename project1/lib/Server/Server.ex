@@ -9,20 +9,19 @@ defmodule Project1.Server do
          Node.set_cookie(cookie)
          IO.inspect self
          :global.register_name(:server,self)
-         Project1.Worker.startWorker({Node.self,elem(tuple,1)})    
+         processes=String.to_integer(to_string(:erlang.system_info(:logical_processors)))*4 
+         1..processes |> Enum.map fn(x) -> Project1.Worker.startWorker({Node.self,elem(tuple,1)})end
          loop(elem(tuple,1))
         end
     
          def loop(k) do
+
             receive do
                 {:ok,nodeName,pid}-> IO.inspect nodeName
-                pid1=Node.spawn_link(nodeName, fn->Project1.Worker.startWorker({nodeName,k}) end)
-                IO.inspect pid1
-                Node.spawn_link(nodeName, fn->Project1.Worker.startWorker({nodeName,k}) end)
-                Node.spawn_link(nodeName, fn->Project1.Worker.startWorker({nodeName,k}) end)
-                Node.spawn_link(nodeName, fn->Project1.Worker.startWorker({nodeName,k}) end)
-                #send(pid, {:ok,elem(tuple,1)})
+                                     pid1=Node.spawn_link(nodeName, fn-> Project1.Client.start_worker_client() end)
+                                     send(pid1,{:ok,nodeName,k})
              end
+
             loop(k)
         end
     

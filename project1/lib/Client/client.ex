@@ -14,7 +14,7 @@ defmodule Project1.Client do
         IO.inspect Node.self
         :global.sync()
         send(:global.whereis_name(:server),{:ok,Node.self,self})
-        loop()
+        start_worker_client()
     end
 
     def generate_name(ipaddress) do
@@ -25,11 +25,27 @@ defmodule Project1.Client do
         String.to_atom("#{machine}-#{hex}@#{ipaddress}")
       end
 
-    def loop() do
+    def start_worker_client() do
         receive do
-            {:ok} -> IO.puts "I received a message"
+        {:ok,nodeName,k}-> IO.puts " I am Here"
+                           Project1.Worker.startWorker({nodeName,k})  
+                           Project1.Worker.startWorker({nodeName,k})  
+                           Project1.Worker.startWorker({nodeName,k})  
+                           Project1.Worker.startWorker({nodeName,k})  
+                           Project1.Worker.startWorker({nodeName,k})  
+                           Project1.Worker.startWorker({nodeName,k})  
+                           Project1.Worker.startWorker({nodeName,k})  
+                           Project1.Worker.startWorker({nodeName,k}) 
+                           Project1.Worker.startWorker({nodeName,k})  
+                           Project1.Worker.startWorker({nodeName,k})  
+                           Project1.Worker.startWorker({nodeName,k})  
+                           Project1.Worker.startWorker({nodeName,k})  
+                           Project1.Worker.startWorker({nodeName,k})  
+                           Project1.Worker.startWorker({nodeName,k})  
+                           Project1.Worker.startWorker({nodeName,k})  
         end
-        loop()
+
+        start_worker_client()
     end
 
 end
