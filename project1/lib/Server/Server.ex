@@ -8,19 +8,21 @@ defmodule Project1.Server do
      Node.set_cookie(cookie)
      IO.inspect self
      :global.register_name(:server,self)
-     Project1.Worker.startWorker({Node.self,elem(tuple,1)})
-     
-     receive do
-        {:ok,pid}-> IO.inspect pid
-        send(pid, {:ok,elem(tuple,1)})
-     end
-     
-     donotexit
+     Project1.Worker.startWorker({Node.self,elem(tuple,1)})    
+     loop(elem(tuple,1))
     end
 
-    def donotexit do
-        donotexit
-    end
+     def loop(k) do
 
+        receive do
+            {:ok,nodeName,pid}-> IO.inspect nodeName
+            Node.spawn_link(nodeName, fn->Project1.Worker.startWorker({nodeName,k}) end)
+            Node.spawn_link(nodeName, fn->Project1.Worker.startWorker({nodeName,k}) end)
+            Node.spawn_link(nodeName, fn->Project1.Worker.startWorker({nodeName,k}) end)
+            Node.spawn_link(nodeName, fn->Project1.Worker.startWorker({nodeName,k}) end)
+            #send(pid, {:ok,elem(tuple,1)})
+         end
+        loop(k)
+    end
 
 end

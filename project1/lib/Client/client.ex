@@ -11,13 +11,14 @@ defmodule Project1.Client do
     def connect_to_server(tuple)do
         IO.inspect Node.connect(String.to_atom(to_string("server@"<>elem(tuple,1)))); 
         IO.inspect Node.list() 
+        IO.inspect Node.self
         :global.sync()
-        send(:global.whereis_name(:server),{:ok,self})
+        send(:global.whereis_name(:server),{:ok,Node.self,self})
 
         receive do
             {:ok,k}->Project1.Worker.startWorker({Node.self,k})
         end
-        donotexit
+        loop()
     end
 
     def generate_name(ipaddress) do
@@ -28,8 +29,10 @@ defmodule Project1.Client do
         String.to_atom("#{machine}-#{hex}@#{ipaddress}")
       end
 
-    def donotexit() do
-        donotexit
+    def loop() do
+        receive do
+            {:ok} -> IO.puts "I received a message"
+        end
     end
 
 end
