@@ -2,28 +2,35 @@ defmodule Project1.Worker do
     use Supervisor
     
         def startWorker(tup_worker) do
-            Node.spawn(elem(tup_worker,0),fn -> Project1.Worker.start_link(elem(tup_worker,1)) end)
+            IO.puts "Here"
+            IO.inspect tup_worker
+            Node.spawn(elem(tup_worker,0),fn -> Project1.Worker.start_link(tup_worker) end)
+            
         end
 
-        def start_link(k) do
-            Supervisor.start_link(__MODULE__, [k])
+        def start_link(tup_worker) do
+            Supervisor.start_link(__MODULE__, [tup_worker])
         end
 
-        def init(k) do
+        def init(tup_worker) do
             children = [
-              worker(Project1.Worker, [k], restart: :permanent, function: :spawn_bitcoin),
+              worker(Project1.Worker, [tup_worker], restart: :permanent, function: :spawn_bitcoin),
               ]
             supervise(children, strategy: :one_for_one)
         end
 
 
-        def spawn_bitcoin(k) do
-             send(spawn(__MODULE__, :bitcoin_miner, [k]),{:ok})
+        def spawn_bitcoin(tup_worker) do
+             send(spawn(__MODULE__, :bitcoin_miner, [tup_worker]),{:ok})
         end
 
-        def bitcoin_miner(k) do
-            getBitCoins(k)
-            bitcoin_miner(k)
+        def bitcoin_miner(tup_worker) do
+            IO.puts "454454545445"
+            IO.puts length(tup_worker)
+            #IO.inspect first(tup_worker)
+            #k=
+            #getBitCoins(k)
+            #bitcoin_miner(tup_worker)
         end
 
         def getBitCoins(k) do
