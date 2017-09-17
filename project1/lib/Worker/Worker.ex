@@ -2,7 +2,6 @@ defmodule Project1.Worker do
     use Supervisor
     
         def startWorker(tup_worker) do
-            IO.puts "Awesome"
             Node.spawn(elem(tup_worker,0),fn -> Project1.Worker.start_link(elem(tup_worker,1)) end)
         end
 
@@ -45,4 +44,5 @@ defmodule Project1.Worker do
                     _-> :ok
               end 
           end
+
 end

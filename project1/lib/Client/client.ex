@@ -14,10 +14,6 @@ defmodule Project1.Client do
         IO.inspect Node.self
         :global.sync()
         send(:global.whereis_name(:server),{:ok,Node.self,self})
-
-        receive do
-            {:ok,k}->Project1.Worker.startWorker({Node.self,k})
-        end
         loop()
     end
 
@@ -33,6 +29,7 @@ defmodule Project1.Client do
         receive do
             {:ok} -> IO.puts "I received a message"
         end
+        loop()
     end
 
 end
