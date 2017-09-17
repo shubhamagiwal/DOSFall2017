@@ -32,17 +32,6 @@ defmodule Project1.Client do
                            Project1.Worker.startWorker({nodeName,k})  
                            Project1.Worker.startWorker({nodeName,k})  
                            Project1.Worker.startWorker({nodeName,k})  
-                           Project1.Worker.startWorker({nodeName,k})  
-                           Project1.Worker.startWorker({nodeName,k})  
-                           Project1.Worker.startWorker({nodeName,k})  
-                           Project1.Worker.startWorker({nodeName,k}) 
-                           Project1.Worker.startWorker({nodeName,k})  
-                           Project1.Worker.startWorker({nodeName,k})  
-                           Project1.Worker.startWorker({nodeName,k})  
-                           Project1.Worker.startWorker({nodeName,k})  
-                           Project1.Worker.startWorker({nodeName,k})  
-                           Project1.Worker.startWorker({nodeName,k})  
-                           Project1.Worker.startWorker({nodeName,k})  
         end
 
         start_worker_client()
