@@ -91,7 +91,7 @@ shubhamagiwal92;31269783	000005624D322F4C86EAA6B1E1B9B758F985F3C8DF7D775B527E3F6
 
 real	0m10.157s
 user	1m18.576s
-sys	0m0.412s
+sys	  0m0.412s
 Total CPU Time  = 78.576s
 Total Real Time = 10.157s
 The ratio of CPU to Real Time = 7.73
