@@ -70,7 +70,7 @@ Total Real Time = 10.157s<br/>
 The ratio of CPU to Real Time = 7.73<br/>
 
 -----------------------------------------------------------------------------------------------------------------------------
-4. We were able to mine bitcoin with 7 leading zeros.
+4. We were able to mine a bitcoin with 7 leading zeros.
 -----------------------------------------------------------------------------------------------------------------------------
 karan@lin114-03:~/DOSFall2017/project1$ ./project1 7 <br/>
 :"server@128.227.248.169"
