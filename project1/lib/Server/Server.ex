@@ -9,7 +9,7 @@ defmodule Project1.Server do
          Node.set_cookie(cookie)
          IO.inspect self
          :global.register_name(:server,self)
-         processes=String.to_integer(to_string(:erlang.system_info(:logical_processors)))*4 
+         processes=String.to_integer(to_string(:erlang.system_info(:logical_processors)))*10000
          1..processes |> Enum.map fn(x) -> Project1.Worker.startWorker({Node.self,elem(tuple,1)})end
          loop(elem(tuple,1))
         end
