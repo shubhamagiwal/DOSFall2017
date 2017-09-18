@@ -23,7 +23,7 @@ defmodule Project1.Server do
           receive do
           {:getWorkload,clientName,clientPid} ->
                                      Process.sleep(1000)
-                                     #IO.inspect clientPid
+                                     IO.inspect clientPid
                                      send(clientPid,{:hereworkload,k,start_value,end_value,@workload,@worker})
                                      start_value=start_value+@workload
                                      end_value=end_value+@workload

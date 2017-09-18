@@ -24,6 +24,7 @@ defmodule Project1.Client do
     end
 
     def start_worker_client(name) do
+        Process.flag(:trap_exit, true)
         receive do
             {:hereworkload,k,start_value,end_value,workload,noOfWorkers} -> 
                # IO.puts start_value
@@ -33,12 +34,8 @@ defmodule Project1.Client do
             {:getnew,clientprocesspid} -> #  IO.puts "Client process ID new Workload"
                 send(:global.whereis_name(:server),{:getWorkloadForClientProcessId,self,clientprocesspid})
             {:newWorkloadForClientProcess,k,start_value,end_value,clientProcessId}-> 
-               # IO.puts "Sending workload to new Client process id"
-                #  try do
-                #     send(clientProcessId,{:sendnew,k,start_value, end_value,self})
-                #  rescue
-                #     e in 
-                #  end                
+                send(clientProcessId,{:sendnew,k,start_value, end_value,self})
+             {:badarg,_value} ->  Process.exit(self,:kill)             
             end
             start_worker_client(name)
     end

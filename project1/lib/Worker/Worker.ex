@@ -20,9 +20,10 @@ defmodule Project1.Worker do
         end
 
         def loop do
-          
+            Process.flag(:trap_exit, true)
             receive do
                 {:sendnew,k, start_value, end_value,pid} -> get_bit_coins(k, start_value, end_value,pid)
+                {:badarg,_value} ->  Process.exit(self,:kill)  
              end
 
              loop
