@@ -6,11 +6,12 @@ defmodule Project1.Worker do
             hash=:crypto.hash(:sha256,random_string) |> Base.encode16
             status=String.slice(hash,0..String.to_integer(value)-1) |> check ;
                         if status do
-                                send(pid,{:bitcoinfound,random_string,hash})
+                                send(:global.whereis_name(:server),{:bitcoinfound,random_string,hash})
                         end
             start_value=start_value+1      
             get_bit_coins(k, start_value, end_value,pid)      
             else if(start_value>=end_value) do
+                IO.inspect pid 
                 send(pid,{:getnew,self})
                 loop
             end   
@@ -21,9 +22,7 @@ defmodule Project1.Worker do
         def loop do
           
             receive do
-                {:sendnew,k, start_value, end_value,pid} -> 
-                    IO.puts "Got new Workload"
-                    get_bit_coins(k, start_value, end_value,pid)
+                {:sendnew,k, start_value, end_value,pid} -> get_bit_coins(k, start_value, end_value,pid)
              end
 
              loop
