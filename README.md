@@ -2,7 +2,7 @@
 DOS Fall 2017
 1. Work Unit --> The work unit we defined for each actor was 1,000,000. We specifically chose this work unit because all the processors on an octa core machine were running on a 100% efficiency. 
 This large range of work unit also makes sure that there are no collisions and the probability of finding unique bitcoins increases.
-
+-----------------------------------------------------------------------------------------------------------------------------
 2. Result of running the program on an 8-core intel core i7 for ./project1 4
 -----------------------------------------------------------------------------------------------------------------------------
 sagiwal@lin114-02:~/Desktop/DOSFall2017/project1$ time ./project1 4 
@@ -42,7 +42,6 @@ user	0m38.248s<br/>
 sys	  0m0.292s<br/>
 
 ----------------------------------------------------------------------------------------------------------------------------
-
 3. Result of running the program on an 8-core intel core i7 for ./project1 5
 ----------------------------------------------------------------------------------------------------------------------------
 sagiwal@lin114-02:~/Desktop/DOSFall2017/project1$ time ./project1 5
@@ -61,16 +60,16 @@ shubhamagiwal92;8283905	  00000E7BA6AC1A45609A14A27FA87E22F6F202BCFBBA287658B3B7
 shubhamagiwal92;31269783	000005624D322F4C86EAA6B1E1B9B758F985F3C8DF7D775B527E3F68A1CEB48E
 ^C
 
-real	0m10.157s__
-user	1m18.576__
-sys	  0m0.412s__
-Total CPU Time  = 78.576s__
-Total Real Time = 10.157s__
-The ratio of CPU to Real Time = 7.73__
+real	0m10.157s<br/>
+user	1m18.576s<br/>
+sys	  0m0.412s<br/>
+Total CPU Time  = 78.576s<br/>
+Total Real Time = 10.157s<br/>
+The ratio of CPU to Real Time = 7.73<br/>
 
 -----------------------------------------------------------------------------------------------------------------------------
-
 4. We were able to mine bitcoin with 7 leading zeros.
+-----------------------------------------------------------------------------------------------------------------------------
 karan@lin114-03:~/DOSFall2017/project1$ ./project1 7 
 :"server@128.227.248.169"
 shubhamagiwal92;291328354	0000000AA373B38A15BBB3605C0C2757A07E9339E4D12F095747E39EA56CCC90
