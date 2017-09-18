@@ -27,7 +27,7 @@ defmodule Project1.Client do
     
         receive do
         {:ok,nodeName,k,serverProcess} -> processes=String.to_integer(to_string(:erlang.system_info(:logical_processors)))*8
-                                          1..processes |> Enum.map fn(x) -> Project1.Worker.startWorker({nodeName,k}) end
+                                          (1..processes) |> Enum.map fn(x) -> Project1.Worker.startWorker({nodeName,k}) end
         
         end
         start_worker_client(name)
