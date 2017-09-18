@@ -1,7 +1,7 @@
 
 defmodule Project1.Server do
         @workload 1000000
-        @worker 32
+        @worker 128
         @startvalue 0
         @endvalue 0
       
@@ -26,8 +26,7 @@ defmodule Project1.Server do
                                      start_value=start_value+@workload
                                      end_value=end_value+@workload
                         
-          {:ok,serverPid} ->   IO.puts " iam here"
-                               send(serverPid,{:ok,serverPid,start_value,end_value,k})
+          {:ok,serverPid} ->   send(serverPid,{:ok,serverPid,start_value,end_value,k})
                                start_value=start_value+@workload
                                end_value=end_value+@workload
 
@@ -37,6 +36,8 @@ defmodule Project1.Server do
           {:getnew,pid} -> {newstartvalue,newendValue}=spawn_processes(k,start_value,end_value,0,pid)
                            start_value=newstartvalue
                            end_value=newstartvalue
+
+          {:bitcoinfound,random_string,hash} -> IO.puts to_string(random_string)<>"\t"<>to_string(hash)
           end
 
            keep_server_alive(start_value,end_value,k)
