@@ -2,11 +2,14 @@ defmodule Project1.Worker do
     use Supervisor
     
         def startWorker(tup_worker) do
+            IO.puts "Hellow"
             pid=Node.spawn(elem(tup_worker,0),fn -> Project1.Worker.start_link(elem(tup_worker,1)) end)
+            pid
         end
 
         def start_link(k) do
             Supervisor.start_link(__MODULE__, [k])
+            Process.sleep(1_000_000)
         end
 
         def init(k) do
@@ -44,5 +47,9 @@ defmodule Project1.Worker do
                     _-> :ok
               end 
           end
+
+         
+          
+
 
 end
