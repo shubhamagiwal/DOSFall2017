@@ -37,9 +37,9 @@ shubhamagiwal92;21189905	0000454A8C9FED8F7A2BE8D1D9F19D50770C45D8534EF2A2965D18A
 shubhamagiwal92;31101019	000094A29C2A8BB79083FA7B12670B1A447C033CAC1F4F2916652F38945D1F78
 ^C
 
-real	0m5.175s
-user	0m38.248s
-sys	  0m0.292s
+real	0m5.175s__
+user	0m38.248s__
+sys	  0m0.292s__
 
 ----------------------------------------------------------------------------------------------------------------------------
 
@@ -61,12 +61,12 @@ shubhamagiwal92;8283905	  00000E7BA6AC1A45609A14A27FA87E22F6F202BCFBBA287658B3B7
 shubhamagiwal92;31269783	000005624D322F4C86EAA6B1E1B9B758F985F3C8DF7D775B527E3F68A1CEB48E
 ^C
 
-real	0m10.157s
-user	1m18.576s
-sys	  0m0.412s
-Total CPU Time  = 78.576s
-Total Real Time = 10.157s
-The ratio of CPU to Real Time = 7.73
+real	0m10.157s__
+user	1m18.576__
+sys	  0m0.412s__
+Total CPU Time  = 78.576s__
+Total Real Time = 10.157s__
+The ratio of CPU to Real Time = 7.73__
 
 -----------------------------------------------------------------------------------------------------------------------------
 
