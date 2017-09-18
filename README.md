@@ -77,3 +77,6 @@ karan@lin114-03:~/DOSFall2017/project1$ ./project1 7 <br/>
 shubhamagiwal92;291328354	0000000AA373B38A15BBB3605C0C2757A07E9339E4D12F095747E39EA56CCC90
 ^C
 
+-----------------------------------------------------------------------------------------------------------------------------
+5. We connected four i-7 octa core machines locally where 1 was the server with all cores utilized at 100% and 3 miners with one process running on them and utilising only one cpu 100% as we are running only one process on the client.
+
