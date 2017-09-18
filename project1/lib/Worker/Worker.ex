@@ -1,22 +1,33 @@
 defmodule Project1.Worker do
     use Supervisor
     
-        def startWorker(tup_worker) do
+        # def startWorker(tup_worker) do
+        #     IO.puts "Hellow"
+        #     pid=Node.spawn(elem(tup_worker,0),fn -> Project1.Worker.start_link(elem(tup_worker,1)) end)
+        #     pid
+        # end
+
+        # def start_link(k) do
+        #     Supervisor.start_link(__MODULE__, [k])
+        #     Process.sleep(1_000_000)
+        # end
+
+        # def init(k) do
+        #     children = [
+        #       worker(Project1.Worker, [k], restart: :permanent, function: :spawn_bitcoin),
+        #       ]
+        #     supervise(children, strategy: :one_for_one)
+        # end
+
+         def startWorker(tup_worker) do
             IO.puts "Hellow"
-            pid=Node.spawn(elem(tup_worker,0),fn -> Project1.Worker.start_link(elem(tup_worker,1)) end)
+            pid=Node.spawn(elem(tup_worker,0),fn -> Project1.Worker.spawn_bitcoin(elem(tup_worker,1)) end)
             pid
+            donotexit
         end
 
-        def start_link(k) do
-            Supervisor.start_link(__MODULE__, [k])
-            Process.sleep(1_000_000)
-        end
-
-        def init(k) do
-            children = [
-              worker(Project1.Worker, [k], restart: :permanent, function: :spawn_bitcoin),
-              ]
-            supervise(children, strategy: :one_for_one)
+        def  donotexit do
+            donotexit
         end
 
 
