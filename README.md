@@ -113,3 +113,10 @@ sys	0m0.412s
 Total CPU Time  = 78.576s
 Total Real Time = 10.157s
 The ratio of CPU to Real Time = 7.73
+
+4. We were able to mine bitcoin with 7 leading zeros.
+karan@lin114-03:~/DOSFall2017/project1$ ./project1 7 
+:"server@128.227.248.169"
+shubhamagiwal92;291328354	0000000AA373B38A15BBB3605C0C2757A07E9339E4D12F095747E39EA56CCC90
+^C
+
