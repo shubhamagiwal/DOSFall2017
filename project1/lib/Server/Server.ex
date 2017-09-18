@@ -11,10 +11,10 @@ defmodule Project1.Server do
         {:ok,serverpid}=Node.start(serverName)
         cookie=Application.get_env(:project1, :cookie)
         Node.set_cookie(cookie)
-        IO.inspect self
+        #IO.inspect self
         :global.register_name(:server,self)
         send(self,{:ok,self})
-        IO.puts elem(tuple,1)
+        #IO.puts elem(tuple,1)
         keep_server_alive(@startvalue,@startvalue+@workload,elem(tuple,1))
        end
 
@@ -23,7 +23,7 @@ defmodule Project1.Server do
           receive do
           {:getWorkload,clientName,clientPid} ->
                                      Process.sleep(1000)
-                                     IO.inspect clientPid
+                                     #IO.inspect clientPid
                                      send(clientPid,{:hereworkload,k,start_value,end_value,@workload,@worker})
                                      start_value=start_value+@workload
                                      end_value=end_value+@workload
@@ -39,7 +39,7 @@ defmodule Project1.Server do
                            end_value=end_value+@workload
 
           {:getWorkloadForClientProcessId,clientPid,clientProcessId} -> 
-            IO.puts "Sent new workload to clientProcess Id"
+            #IO.puts "Sent new workload to clientProcess Id"
             send(clientPid,{:newWorkloadForClientProcess,k,start_value,end_value,clientProcessId})
             start_value=start_value+@workload
             end_value=end_value+@workload

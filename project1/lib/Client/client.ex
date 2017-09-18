@@ -24,34 +24,27 @@ defmodule Project1.Client do
     end
 
     def start_worker_client(name) do
-    
+        process.trap_
         receive do
             {:hereworkload,k,start_value,end_value,workload,noOfWorkers} -> 
-                IO.puts start_value
-                IO.puts end_value
-                IO.inspect self
+               # IO.puts start_value
+               # IO.puts end_value
+               # IO.inspect self
                 spawn_processes_client(k,start_value,end_value,0,workload,noOfWorkers,self)
             # {:getnew,pid} -> send(:global.whereis_name(:server),{:getWorkload,Node.self,pid})
-            {:getnew,clientprocesspid} ->  IO.puts "Client process ID new Workload"
+            {:getnew,clientprocesspid} -> #  IO.puts "Client process ID new Workload"
                 send(:global.whereis_name(:server),{:getWorkloadForClientProcessId,self,clientprocesspid})
             {:newWorkloadForClientProcess,k,start_value,end_value,clientProcessId}-> 
-                IO.puts "Sending workload to new Client process id"
+               # IO.puts "Sending workload to new Client process id"
                 send(clientProcessId,{:sendnew,k,start_value, end_value,self})
             end
             start_worker_client(name)
     end
 
     def spawn_processes_client(k,start_value,end_value,startValue,workload,workers,clientId) do
-        IO.puts "Spawn"
+        #IO.puts "Spawn"
         times=String.to_integer(to_string(:erlang.system_info(:logical_processors)))*1
         start=startValue
         spawn(fn -> Project1.Worker.get_bit_coins(k,start_value,end_value,clientId) end)
-        # if(start<times) do
-        #    spawn(fn -> Project1.Worker.get_bit_coins(k,start_value,end_value,self) end)
-        #    start_value=start_value+workload
-        #    end_value=end_value+workload
-        #    times=times+1
-        #    spawn_processes_client(k,start_value,end_value,times,workload,workers)
-        # end
     end
 end

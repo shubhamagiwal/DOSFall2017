@@ -11,7 +11,7 @@ defmodule Project1.Worker do
             start_value=start_value+1      
             get_bit_coins(k, start_value, end_value,pid)      
             else if(start_value>=end_value) do
-                IO.inspect pid 
+                #IO.inspect pid 
                 send(pid,{:getnew,self})
                 loop
             end   
