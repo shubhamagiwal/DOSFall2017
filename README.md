@@ -5,7 +5,7 @@ This large range of work unit also makes sure that there are no collisions and t
 -----------------------------------------------------------------------------------------------------------------------------
 2. Result of running the program on an 8-core intel core i7 for ./project1 4
 -----------------------------------------------------------------------------------------------------------------------------
-sagiwal@lin114-02:~/Desktop/DOSFall2017/project1$ time ./project1 4 
+sagiwal@lin114-02:~/Desktop/DOSFall2017/project1$ time ./project1 4 <br/>
 :"server@128.227.248.168"
 #PID<0.78.0>
 4
@@ -44,7 +44,7 @@ sys	  0m0.292s<br/>
 ----------------------------------------------------------------------------------------------------------------------------
 3. Result of running the program on an 8-core intel core i7 for ./project1 5
 ----------------------------------------------------------------------------------------------------------------------------
-sagiwal@lin114-02:~/Desktop/DOSFall2017/project1$ time ./project1 5
+sagiwal@lin114-02:~/Desktop/DOSFall2017/project1$ time ./project1 5 <br/>
 :"server@128.227.248.168"
 #PID<0.78.0>
 5
@@ -70,7 +70,7 @@ The ratio of CPU to Real Time = 7.73<br/>
 -----------------------------------------------------------------------------------------------------------------------------
 4. We were able to mine bitcoin with 7 leading zeros.
 -----------------------------------------------------------------------------------------------------------------------------
-karan@lin114-03:~/DOSFall2017/project1$ ./project1 7 
+karan@lin114-03:~/DOSFall2017/project1$ ./project1 7 <br/>
 :"server@128.227.248.169"
 shubhamagiwal92;291328354	0000000AA373B38A15BBB3605C0C2757A07E9339E4D12F095747E39EA56CCC90
 ^C
