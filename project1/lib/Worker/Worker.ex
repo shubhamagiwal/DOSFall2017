@@ -12,7 +12,12 @@ defmodule Project1.Worker do
             get_bit_coins(k, start_value, end_value,pid)      
             else if(start_value>=end_value) do
                 send(pid,{:getnew,pid})
+
+                receive do
+                    {:sendNew,k, start_value, end_value,pid}->get_bit_coins(k, start_value, end_value,pid)
+                 end
             end   
+            get_bit_coins(k, start_value, end_value,pid)
           end   
         end
 

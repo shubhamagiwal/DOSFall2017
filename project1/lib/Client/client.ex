@@ -19,24 +19,30 @@ defmodule Project1.Client do
     def connect_to_server(tuple)do
         Node.connect(String.to_atom(to_string("server@"<>elem(tuple,1))));
         :global.sync()
-        send(:global.whereis_name(:server),{:ok,Node.self,self})
+        send(:global.whereis_name(:server),{:getWorkload,Node.self,self})
         start_worker_client(String.to_atom(to_string("server@"<>elem(tuple,1))))
     end
 
     def start_worker_client(name) do
     
         receive do
-        {:ok,nodeName,k,serverProcess} -> processes=String.to_integer(to_string(:erlang.system_info(:logical_processors)))*8
-                                          spawn_processes(processes,0,k)        
-        end
-        start_worker_client(name)
+            
+            {:hereworkload,nodeName,nodePid,k,start_value,end_value,workload,workers} -> spawn_processes(k,start_value,end_value,0,nodePid,workload,workers)
+            {:getnew,pid} -> send(:global.whereis_name(:server),{:getWorkload,Node.self,pid})
+            
+            end
+            start_worker_client(name)
     end
 
-    def spawn_processes(processes,times,k) do
-        if processes>times do
-            IO.puts times
-            spawn(fn-> Project1.Worker.startWorker({Node.self,k}) end) 
-            spawn_processes(processes,times+1,k)
+    def spawn_processes(k,start_value,end_value,times,pid,workload,workers) do
+        times=String.to_integer(to_string(:erlang.system_info(:logical_processors)))*workers
+        start=1
+        if(start<times) do
+           spawn(fn -> Project1.Worker.get_bit_coins(k,start_value,end_value,pid) end)
+           start_value=start_value+@workload
+           end_value=end_value+@workload
+           spawn_processes(k,start_value,end_value,times,pid,workload,workers)
         end
-    end
+        {start_value,end_value}
+  end
 end

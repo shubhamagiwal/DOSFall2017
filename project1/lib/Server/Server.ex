@@ -21,8 +21,9 @@ defmodule Project1.Server do
        def keep_server_alive(start_value,end_value,k) do
            
           receive do
-          {:ok,nodeName,nodePid} ->  IO.inspect nodeName
-                                     send(nodePid,{:ok,nodeName,k,self,start_value,end_value})
+          {:getWorkload,nodeName,nodePid} ->
+                                     Process.sleep(1000)
+                                     send(nodePid,{:hereworkload,nodeName,nodePid,k,start_value,end_value,@workload,@worker})
                                      start_value=start_value+@workload
                                      end_value=end_value+@workload
                         
@@ -33,9 +34,11 @@ defmodule Project1.Server do
           {:ok,pid,startvalue,endvalue,k} ->
                                             spawn(fn -> Project1.Worker.get_bit_coins(k,startvalue,endvalue,pid) end)
 
-          {:getnew,pid} -> {newstartvalue,newendValue}=spawn_processes(k,start_value,end_value,0,pid)
-                           start_value=newstartvalue
-                           end_value=newstartvalue
+          {:getnew,pid} -> #{newstartvalue,newendValue}=spawn_processes(k,start_value,end_value,0,pid)
+                           Process.sleep(1000)
+                           send(pid,{:sendNew,k,start_value,end_value,pid})
+                           start_value=start_value+@workload
+                           end_value=end_value+@workload
 
           {:bitcoinfound,random_string,hash} -> IO.puts to_string(random_string)<>"\t"<>to_string(hash)
           end
