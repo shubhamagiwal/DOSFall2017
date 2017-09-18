@@ -1,4 +1,12 @@
 defmodule Project1.Client do
+
+    def generate_name(ipaddress) do
+        machine = to_string("localhost")
+        hex = :erlang.monotonic_time() |>
+          :erlang.phash2(256) |>
+          Integer.to_string(16)
+        String.to_atom("#{machine}-#{hex}@#{ipaddress}")
+      end
     
     def start_client(ip_address)do
         clientName=generate_name(ip_address)
@@ -9,32 +17,19 @@ defmodule Project1.Client do
     end
 
     def connect_to_server(tuple)do
-        IO.inspect Node.connect(String.to_atom(to_string("server@"<>elem(tuple,1)))); 
-        IO.inspect Node.list() 
-        IO.inspect Node.self
+        Node.connect(String.to_atom(to_string("server@"<>elem(tuple,1))));
         :global.sync()
         send(:global.whereis_name(:server),{:ok,Node.self,self})
-        start_worker_client()
+        start_worker_client(String.to_atom(to_string("server@"<>elem(tuple,1))))
     end
 
-    def generate_name(ipaddress) do
-        machine = to_string("localhost")
-        hex = :erlang.monotonic_time() |>
-          :erlang.phash2(256) |>
-          Integer.to_string(16)
-        String.to_atom("#{machine}-#{hex}@#{ipaddress}")
-      end
-
-    def start_worker_client() do
+    def start_worker_client(name) do
+    
         receive do
-        {:ok,nodeName,k}-> IO.puts " I am Here"
-                           Project1.Worker.startWorker({nodeName,k})  
-                           Project1.Worker.startWorker({nodeName,k})  
-                           Project1.Worker.startWorker({nodeName,k})  
-                           Project1.Worker.startWorker({nodeName,k})  
+        {:ok,nodeName,k,serverProcess} -> processes=String.to_integer(to_string(:erlang.system_info(:logical_processors)))*8
+                                          1..processes |> Enum.map fn(x) -> Project1.Worker.startWorker({nodeName,k}) end
+        
         end
-
-        start_worker_client()
+        start_worker_client(name)
     end
-
 end

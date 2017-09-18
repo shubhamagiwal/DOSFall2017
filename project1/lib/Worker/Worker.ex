@@ -1,5 +1,5 @@
 defmodule Project1.Worker do
-    use Supervisor
+    use Supervisor,Agent
     
         def startWorker(tup_worker) do
             pid=Node.spawn(elem(tup_worker,0),fn -> Project1.Worker.start_link(elem(tup_worker,1)) end)
