@@ -1,7 +1,7 @@
 
 defmodule Project1.Server do
         @workload 1000000
-        @worker 128
+        @worker 4
         @startvalue 0
         @endvalue 0
       
@@ -32,30 +32,30 @@ defmodule Project1.Server do
                                end_value=end_value+@workload
 
           {:ok,pid,startvalue,endvalue,k} ->
-                                            spawn(fn -> Project1.Worker.get_bit_coins(k,startvalue,endvalue,pid) end)
+                                            #spawn(fn -> Project1.Worker.get_bit_coins(k,startvalue,endvalue,pid) end)
+                                            spawn_processes(k,start_value,end_value,0,pid,0)
 
-          {:getnew,pid} -> #{newstartvalue,newendValue}=spawn_processes(k,start_value,end_value,0,pid)
-                           Process.sleep(1000)
-                           send(pid,{:sendNew,k,start_value,end_value,pid})
+          {:getnew,pid} -> send(pid,{:sendnew,k,start_value,end_value,pid})
                            start_value=start_value+@workload
                            end_value=end_value+@workload
 
           {:bitcoinfound,random_string,hash} -> IO.puts to_string(random_string)<>"\t"<>to_string(hash)
+
           end
 
            keep_server_alive(start_value,end_value,k)
        end
 
-       def spawn_processes(k,start_value,end_value,times,pid) do
+       def spawn_processes(k,start_value,end_value,times,pid,startvalue) do
              times=String.to_integer(to_string(:erlang.system_info(:logical_processors)))*@worker
-             start=1
+             start=startvalue
              if(start<times) do
                 spawn(fn -> Project1.Worker.get_bit_coins(k,start_value,end_value,pid) end)
                 start_value=start_value+@workload
                 end_value=end_value+@workload
-                spawn_processes(k,start_value,end_value,times,pid)
+                times=times+1
+                spawn_processes(k,start_value,end_value,times,pid,startvalue+1)
              end
-             {start_value,end_value}
        end
 
     end

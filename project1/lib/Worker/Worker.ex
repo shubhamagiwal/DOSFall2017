@@ -11,14 +11,22 @@ defmodule Project1.Worker do
             start_value=start_value+1      
             get_bit_coins(k, start_value, end_value,pid)      
             else if(start_value>=end_value) do
-                send(pid,{:getnew,pid})
-
-                receive do
-                    {:sendNew,k, start_value, end_value,pid}->get_bit_coins(k, start_value, end_value,pid)
-                 end
+                send(pid,{:getnew,self})
+                loop
             end   
             get_bit_coins(k, start_value, end_value,pid)
           end   
+        end
+
+        def loop do
+          
+            receive do
+                {:sendnew,k, start_value, end_value,pid} -> 
+                    IO.puts "Got new Workload"
+                    get_bit_coins(k, start_value, end_value,pid)
+             end
+
+             loop
         end
 
           def check(partOfHash) do
