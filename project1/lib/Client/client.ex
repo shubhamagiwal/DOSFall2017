@@ -24,21 +24,27 @@ defmodule Project1.Client do
     end
 
     def start_worker_client(name) do
-        process.trap_
         receive do
             {:hereworkload,k,start_value,end_value,workload,noOfWorkers} -> 
                # IO.puts start_value
                # IO.puts end_value
                # IO.inspect self
                 spawn_processes_client(k,start_value,end_value,0,workload,noOfWorkers,self)
-            # {:getnew,pid} -> send(:global.whereis_name(:server),{:getWorkload,Node.self,pid})
             {:getnew,clientprocesspid} -> #  IO.puts "Client process ID new Workload"
                 send(:global.whereis_name(:server),{:getWorkloadForClientProcessId,self,clientprocesspid})
             {:newWorkloadForClientProcess,k,start_value,end_value,clientProcessId}-> 
                # IO.puts "Sending workload to new Client process id"
-                send(clientProcessId,{:sendnew,k,start_value, end_value,self})
+                #  try do
+                #     send(clientProcessId,{:sendnew,k,start_value, end_value,self})
+                #  rescue
+                #     e in 
+                #  end                
             end
             start_worker_client(name)
+    end
+
+    def exampleError do
+        IO.puts " I am Here"
     end
 
     def spawn_processes_client(k,start_value,end_value,startValue,workload,workers,clientId) do

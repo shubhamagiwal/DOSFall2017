@@ -1,6 +1,6 @@
 
 defmodule Project1.Server do
-        @workload 1000000
+        @workload 10000000
         @worker 4
         @startvalue 0
         @endvalue 0
