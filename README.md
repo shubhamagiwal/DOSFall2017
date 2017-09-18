@@ -4,9 +4,8 @@ DOS Fall 2017
 This large range of work unit also makes sure that there are no collisions and the probability of finding unique bitcoins increases.
 -----------------------------------------------------------------------------------------------------------------------------
 2. Result of running the program on an 8-core intel core i7 for ./project1 4
------------------------------------------------------------------------------------------------------------------------------<br/>
-sagiwal@lin114-02:~/Desktop/DOSFall2017/project1$ time ./project1 4 <br/>
 -----------------------------------------------------------------------------------------------------------------------------
+sagiwal@lin114-02:~/Desktop/DOSFall2017/project1$ time ./project1 4 <br/>
 Output<br/>
 :"server@128.227.248.168"
 #PID<0.78.0>
@@ -47,7 +46,6 @@ sys	  0m0.292s<br/>
 3. Result of running the program on an 8-core intel core i7 for ./project1 5
 ----------------------------------------------------------------------------------------------------------------------------
 sagiwal@lin114-02:~/Desktop/DOSFall2017/project1$ time ./project1 5 <br/>
------------------------------------------------------------------------------------------------------------------------------
 Output<br/>
 :"server@128.227.248.168"
 #PID<0.78.0>
