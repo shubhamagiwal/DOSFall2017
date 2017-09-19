@@ -36,6 +36,8 @@ When the client joins the server,it requests the server for the workload and the
 
 When the server or client get a bitcoin, they send the value of the random string and its hash value back to the server to be printed on the console.
 
+Note: When the server shuts down the client will not shutdown but it will throw a bad arg exception.
+
 ----------------------------------------------------------------------------------------------------------------------------
 
 ## Assignment Details
