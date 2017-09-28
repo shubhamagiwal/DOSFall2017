@@ -20,6 +20,11 @@ defmodule BitcoinMinerGen do
                     BitcoinMinerGen.Server.start_server_node
           #Start the Server
        end 
+       loop()
+  end
+
+  def loop() do
+    loop()
   end
 
 end
