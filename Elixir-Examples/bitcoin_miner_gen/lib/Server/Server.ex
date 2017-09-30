@@ -50,8 +50,6 @@ use GenServer
      def handle_cast({:new_workload,worker_process_id},state_tuple)do
         workload_start=elem(state_tuple,0)+@workload;
         workload_end=elem(state_tuple,1)+@workload;
-        IO.puts  to_string(workload_start)
-        IO.puts  to_string(workload_end)
         send(worker_process_id,{:new_workLoad,workload_start,workload_end,elem(state_tuple,2),Server,Node.self()})
         {:noreply,{workload_start,workload_end,elem(state_tuple,2)}}
     end
