@@ -1,18 +1,12 @@
 defmodule Project2 do
-  @moduledoc """
-  Documentation for Project2.
-  """
-
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> Project2.hello
-      :world
-
-  """
-  def hello do
-    :world
+  
+  def main(args\\[]) do
+      Project2.LibFunctions.get_ip_address(args) |> Project2.Server.start_server_node
+      loop()
   end
+
+  def loop() do
+    loop()
+  end
+
 end
