@@ -26,6 +26,7 @@ use GenServer
     end
 
     def creating_topology_for_each_actor(start_value,topology,list) do
+            
             if(start_value<Enum.count(list)) do
                 list_of_neighbours=creating_topology(start_value,topology,list)
                 GenServer.cast(Enum.at(list,start_value),{:update,topology,list_of_neighbours})
@@ -43,12 +44,13 @@ use GenServer
          case topology do
 
             "full" -> 
-                      l = get_neighbours(start_value,"full",list,0,[])
+                      l = get_neighbours(start_value,topology,list,0,[])
                       l
 
             "2D" -> IO.puts "Still to do"
 
-            "line" -> IO.puts "Still to do"
+            "line" -> l = get_neighbours(start_value,topology,list,0,[])
+                      l
 
             "imp2D" -> IO.puts "Still to do"
          end
@@ -74,8 +76,26 @@ use GenServer
 
             "2D" -> IO.puts "Still to do"
 
-            "line" -> IO.puts "Still to do"
-
+            "line" -> 
+                    IO.puts position
+                    IO.puts Enum.count(list)-1
+                    if((position==0)==true) do
+                        #IO.puts "Entered 0"
+                        l=l++[Enum.at(list,position+1)]
+                        #IO.inspect l
+                    else if((position==Enum.count(list)-1)==true)do
+                         #IO.puts "Entered last"
+                         l=l++[Enum.at(list,position-1)]
+                         #IO.inspect l
+                    else 
+                        #IO.puts "Entered mid"
+                        l=l++[Enum.at(list,position-1)]
+                        l=l++[Enum.at(list,position+1)] 
+                        #IO.inspect l
+                        end
+                      end
+            
+                    l
             "imp2D" -> IO.puts "Still to do"
          end
 
@@ -107,7 +127,7 @@ use GenServer
         state=Map.merge(state,state_list_neighbours)
         state=Map.merge(state,state_list_count)
         state=Map.merge(state,state_list_topology)
-        IO.inspect state
+        IO.puts "#{inspect self()} #{inspect state}"
         {:noreply,state}
     end
 
@@ -120,7 +140,7 @@ use GenServer
             {_,state_list_count}=Map.get_and_update(state,:count, fn current_value -> {current_value,current_value+1} end)
             state=Map.merge(state,state_list_count)
             neighbour=Enum.random(state[:list_of_neighbours])
-            #IO.puts "neighbour #{inspect neighbour}"
+            IO.puts "neighbour #{inspect neighbour}"
             if neighbour_is_alive(neighbour) do
                 GenServer.cast(neighbour,{:startGossip})
                  Process.sleep(1_00)
