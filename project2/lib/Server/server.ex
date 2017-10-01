@@ -10,7 +10,7 @@ use GenServer
         numNodes=String.to_integer(to_string(Enum.at(elem(server_tuple,1),0)));
         topology=to_string(Enum.at(elem(server_tuple,1),1));
 
-        if(topology=="2D") do
+        if(topology=="2D" or topology=="imp2D") do
             numNodes=round(:math.pow(round(:math.sqrt(numNodes)),2))
         end
         #IO.inspect numNodes
@@ -58,7 +58,8 @@ use GenServer
             "line" -> l = get_neighbours(start_value,topology,list,0,[])
                       l
 
-            "imp2D" -> IO.puts "Still to do"
+            "imp2D" -> l = get_neighbours(start_value,topology,list,0,[])
+                       l
          end
 
     end
@@ -136,7 +137,47 @@ use GenServer
                       end
 
                     l
-            "imp2D" -> IO.puts "Still to do"
+            "imp2D" -> 
+
+                    n=round(:math.sqrt(Enum.count(list))) #Value of grid n*n grid
+                    
+                    # Forward nth Neighbour
+                    if((position+n)>Enum.count(list)) do
+                        #Do nothing
+                    else
+                        l=l++[Enum.at(list,position+n)]
+                    end
+
+                    # Backward nth Neighbour
+                    if((position-n)<0) do
+                        #Do nothing
+                    else
+                        l=l++[Enum.at(list,position-n)]
+                    end
+
+                    # Forward one Neighbour
+                    if( rem((position+1),n)==0) do
+                        #Do nothing
+                    else
+                        l=l++[Enum.at(list,position+1)]
+                    end
+
+                    # Backward one Neighbour
+                    if(
+                     ((position-1)<0) or 
+                     ((rem((position-1),n))!=0 and (rem(position,n)==0))
+                     ) do
+                    #Do nothing
+                    else
+                        l=l++[Enum.at(list,position-1)]
+                    end
+                    l=List.delete(l,nil)
+
+                    # Adding a random neighbour from the remaining neighbour
+                    remainList=list--l
+                    l=l++[Enum.random(remainList)]
+                    IO.puts "#{n}    #{inspect l}"
+
          end
 
         l
