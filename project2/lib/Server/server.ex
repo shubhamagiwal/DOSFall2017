@@ -1,5 +1,6 @@
 defmodule Project2.Server do
 use GenServer
+@gossip 10
 
     def start_server_node(server_tuple) do
         serverName=String.to_atom(to_string("server@")<>elem(server_tuple,0))
@@ -11,6 +12,7 @@ use GenServer
         #GenServer.cast(Enum.at(list,0),{:got,"Awesome"})
         #GenServer.cast(Enum.at(list,1),{:got,"Awesome2"})
         creating_topology_for_each_actor(0,Enum.at(elem(server_tuple,1),1),list)
+        GenServer.cast(Enum.random(list),{:startGossip})
         #creating_topology(to_string(Enum.at(elem(server_tuple,1),1)),list)
     end
 
@@ -84,8 +86,8 @@ use GenServer
    # Genserver processes start
    def start(start_value) do
         {:ok,pid} = GenServer.start_link(__MODULE__,:ok,name: String.to_atom(to_string(start_value)))
-        #pid
-        String.to_atom(to_string(start_value))
+        pid
+        #String.to_atom(to_string(start_value))
     end
 
     #Server Side Implementation
@@ -109,6 +111,46 @@ use GenServer
         {:noreply,state}
     end
 
+    def handle_cast({:startGossip},state) do
+        IO.puts "#{inspect self()} #{state[:count]}"
 
+        if(state[:count]>=@gossip) do
+            kill_actor(self())
+        else
+            {_,state_list_count}=Map.get_and_update(state,:count, fn current_value -> {current_value,current_value+1} end)
+            state=Map.merge(state,state_list_count)
+            neighbour=Enum.random(state[:list_of_neighbours])
+            #IO.puts "neighbour #{inspect neighbour}"
+            if neighbour_is_alive(neighbour) do
+                GenServer.cast(neighbour,{:startGossip})
+                 Process.sleep(1_00)
+                if(state[:count]<@gossip) do
+                     GenServer.cast(self(),{:startGossip})
+                end
+            else
+                Process.sleep(1_00)
+                if(state[:count]<@gossip) do
+                     GenServer.cast(self(),{:startGossip})
+                end
+            end
+             {:noreply,state}
+        end
+
+        {:noreply,state}
+    end
+ 
+    def neighbour_is_alive(process_id) do
+        if(Process.alive?(process_id)) do
+            true
+        else 
+            false
+        end
+    end
+
+    def kill_actor(process_id) do
+        IO.puts "Killing #{inspect process_id}"
+        Process.exit(process_id,:normal)
+        #IO.puts "Killed"
+    end
 
 end
