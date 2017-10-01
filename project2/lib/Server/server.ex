@@ -7,12 +7,17 @@ use GenServer
         {:ok,_}=Node.start(serverName)
         cookie=Application.get_env(:project1, :cookie)
         Node.set_cookie(cookie)
-        list=spawn_processes(String.to_integer(to_string(Enum.at(elem(server_tuple,1),0))),1,[])
+        numNodes=String.to_integer(to_string(Enum.at(elem(server_tuple,1),0)));
+        topology=to_string(Enum.at(elem(server_tuple,1),1));
+
+        if(topology=="2D") do
+            numNodes=round(:math.pow(round(:math.sqrt(numNodes)),2))
+        end
+        #IO.inspect numNodes
+        list=spawn_processes(numNodes,1,[])
         IO.inspect list
-        #GenServer.cast(Enum.at(list,0),{:got,"Awesome"})
-        #GenServer.cast(Enum.at(list,1),{:got,"Awesome2"})
-        creating_topology_for_each_actor(0,Enum.at(elem(server_tuple,1),1),list)
-        GenServer.cast(Enum.random(list),{:startGossip})
+        creating_topology_for_each_actor(0,topology,list)
+        #GenServer.cast(Enum.random(list),{:startGossip})
         #creating_topology(to_string(Enum.at(elem(server_tuple,1),1)),list)
     end
 
@@ -47,7 +52,8 @@ use GenServer
                       l = get_neighbours(start_value,topology,list,0,[])
                       l
 
-            "2D" -> IO.puts "Still to do"
+            "2D" -> l = get_neighbours(start_value,topology,list,0,[])
+                    l
 
             "line" -> l = get_neighbours(start_value,topology,list,0,[])
                       l
@@ -74,11 +80,45 @@ use GenServer
                 l=get_neighbours(position,topology,list,start_value,l)
              end
 
-            "2D" -> IO.puts "Still to do"
+            "2D" -> 
+                    n=round(:math.sqrt(Enum.count(list))) #Value of grid n*n grid
+                    
+                    # Forward nth Neighbour
+                    if((position+n)>Enum.count(list)) do
+                        #Do nothing
+                    else
+                        l=l++[Enum.at(list,position+n)]
+                    end
+
+                    # Backward nth Neighbour
+                    if((position-n)<0) do
+                        #Do nothing
+                    else
+                        l=l++[Enum.at(list,position-n)]
+                    end
+
+                    # Forward one Neighbour
+                    if( rem((position+1),n)==0) do
+                        #Do nothing
+                    else
+                        l=l++[Enum.at(list,position+1)]
+                    end
+
+                    # Backward one Neighbour
+                    if(
+                     ((position-1)<0) or 
+                     ((rem((position-1),n))!=0 and (rem(position,n)==0))
+                     ) do
+                    #Do nothing
+                    else
+                        l=l++[Enum.at(list,position-1)]
+                    end
+                    l=List.delete(l,nil)
+                    IO.puts "#{n}    #{inspect l}"
 
             "line" -> 
-                    IO.puts position
-                    IO.puts Enum.count(list)-1
+                   # IO.puts position
+                   # IO.puts Enum.count(list)-1
                     if((position==0)==true) do
                         #IO.puts "Entered 0"
                         l=l++[Enum.at(list,position+1)]
@@ -94,7 +134,7 @@ use GenServer
                         #IO.inspect l
                         end
                       end
-            
+
                     l
             "imp2D" -> IO.puts "Still to do"
          end
