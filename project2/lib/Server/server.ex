@@ -17,7 +17,7 @@ use GenServer
         list=spawn_processes(numNodes,1,[])
         IO.inspect list
         creating_topology_for_each_actor(0,topology,list)
-        #GenServer.cast(Enum.random(list),{:startGossip})
+        GenServer.cast(Enum.random(list),{:startGossip})
         #creating_topology(to_string(Enum.at(elem(server_tuple,1),1)),list)
     end
 
