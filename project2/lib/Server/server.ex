@@ -19,11 +19,13 @@ use GenServer
         list=spawn_processes(numNodes,1,[])
         #Main Process Creation
         Project2.Main.start_main_process();
-        GenServer.cast(Main_process,{:update_main,list,topology})
         # Creating Agent to keep track of the active actors in the Node
         #{:ok,_} = Agent.start_link(fn -> list end, name: Agent_active_nodes)
         # Creating Agent to keep track of the active actors in the Node Ended
         creating_topology_for_each_actor(0,topology,list)
+        {_,seconds,_}=:erlang.timestamp()
+        IO.inspect seconds
+        GenServer.cast(Main_process,{:update_main,list,topology,seconds})
 
         #Start Gossip if the input is gossip
         if(algorithm=="gossip") do

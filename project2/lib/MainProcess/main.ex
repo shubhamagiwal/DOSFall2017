@@ -11,11 +11,14 @@ use GenServer
         {:ok,%{}}
     end
 
-    def handle_cast({:update_main,list,topology},state) do
+    def handle_cast({:update_main,list,topology,seconds},state) do
         {_,state_list}=Map.get_and_update(state,:list, fn current_value -> {current_value,list} end)
         {_,state_list_topology}=Map.get_and_update(state,:topology, fn current_value -> {current_value,topology} end)
+        {_,state_seconds}=Map.get_and_update(state,:time, fn current_value -> {current_value,seconds} end)
+
         state=Map.merge(state,state_list)
         state=Map.merge(state,state_list_topology)
+        state=Map.merge(state,state_seconds)
         #IO.puts "#{inspect self()} #{inspect state}"
         {:noreply,state}
     end
@@ -45,7 +48,9 @@ use GenServer
 
     def handle_cast({:kill_main},state) do
         IO.inspect "All Nodes are dead in. Calculate the time now"
-        IO.inspect "awersome"
+        {_,final_timer,_}=:erlang.timestamp()
+        IO.inspect "Start timer- #{state[:time]}"
+        IO.inspect "end timer- #{final_timer}"
         Process.exit(self(),:normal)
         {:noreply,state}
     end
