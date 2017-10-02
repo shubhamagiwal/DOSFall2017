@@ -19,13 +19,10 @@ use GenServer
         list=spawn_processes(numNodes,1,[])
         #Main Process Creation
         Project2.Main.start_main_process();
-        # Creating Agent to keep track of the active actors in the Node
-        #{:ok,_} = Agent.start_link(fn -> list end, name: Agent_active_nodes)
-        # Creating Agent to keep track of the active actors in the Node Ended
         creating_topology_for_each_actor(0,topology,list)
         {_,seconds,_}=:erlang.timestamp()
-        IO.inspect seconds
         GenServer.cast(Main_process,{:update_main,list,topology,seconds})
+        #Main Process End
 
         #Start Gossip if the input is gossip
         if(algorithm=="gossip") do
@@ -46,6 +43,7 @@ use GenServer
             
             if(start_value<Enum.count(list)) do
                 list_of_neighbours=creating_topology(start_value,topology,list)
+                #IO.inspect "List of neighbours #{inspect list_of_neighbours}"
                 GenServer.cast(Enum.at(list,start_value),{:update,topology,list_of_neighbours})
                 start_value=start_value+1
                 creating_topology_for_each_actor(start_value,topology,list)
@@ -178,10 +176,8 @@ use GenServer
                     remainList=list--l
                     l=l++[Enum.random(remainList)]
                     IO.puts "#{n}    #{inspect l}"
-
          end
-
-        l
+         l
     end
 
    
@@ -190,20 +186,15 @@ use GenServer
    def start(start_value) do
         {:ok,pid} = GenServer.start_link(__MODULE__,:ok,name: String.to_atom(to_string(start_value)))
         pid
-        #String.to_atom(to_string(start_value))
     end
 
     #Server Side Implementation
     def init(:ok) do
-        # First is Rumor
         {:ok,%{}}
     end
 
     def handle_cast({:update,topology,list_of_neighbours},state) do
-        #state[:topology]=topology
-        #%{state | :list_of_neighbours => list_of_neighbours}
-        #IO.inspect state
-        #IO.inspect list_of_neighbours
+        #IO.inspect "List of neighbours: #{inspect list_of_neighbours}"
         {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,list_of_neighbours} end)
         {_,state_list_count}=Map.get_and_update(state,:count, fn current_value -> {current_value,0} end)
         {_,state_list_topology}=Map.get_and_update(state,:topology, fn current_value -> {current_value,topology} end)
@@ -232,13 +223,10 @@ use GenServer
             IO.puts "process_id #{inspect self()} neighbour #{inspect neighbour}"
             if neighbour_is_alive(neighbour) do
                 GenServer.cast(neighbour,{:startGossip})
-                 #Process.sleep(1_00)
                 if(state[:count]<@gossip) do
-                     #Process.sleep(1_00)
                      GenServer.cast(self(),{:startGossip})
                 end
             else
-               #Process.sleep(1_00)
                 #Remove the killed neighbour
                {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,List.delete(state[:list_of_neighbours],neighbour)} end)
                state=Map.merge(state,state_list_neighbours) 
@@ -263,13 +251,9 @@ use GenServer
 
     def kill_actor(process_id) do
          IO.puts "Killing #{inspect process_id}"
-         GenServer.cast(Main_process,{:exit_process,process_id})
-         #IO.inspect GenServer.call(Main_process,{:count_active_nodes})
-         #count=GenServer.call(Main_process,{:count_active_nodes})   
+         GenServer.cast(Main_process,{:exit_process,process_id})  
          IO.puts "Starting new Node Gossip"     
          GenServer.cast(Main_process,{:start_gossip_alive_node})
-         #IO.inspect "All Nodes are dead in. Calculate the time now"
-         #Process.exit(Main_process,:normal)
     end
 
     # def kill_actor(process_id) do
