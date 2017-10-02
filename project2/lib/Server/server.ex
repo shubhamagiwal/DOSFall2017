@@ -7,18 +7,26 @@ use GenServer
         {:ok,_}=Node.start(serverName)
         cookie=Application.get_env(:project1, :cookie)
         Node.set_cookie(cookie)
+
         numNodes=String.to_integer(to_string(Enum.at(elem(server_tuple,1),0)));
         topology=to_string(Enum.at(elem(server_tuple,1),1));
-
+        algorithm=to_string(Enum.at(elem(server_tuple,1),2));
+        
         if(topology=="2D" or topology=="imp2D") do
             numNodes=round(:math.pow(round(:math.sqrt(numNodes)),2))
         end
-        #IO.inspect numNodes
+
         list=spawn_processes(numNodes,1,[])
-        IO.inspect list
+        # Creating Agent to keep track of the active actors in the Node
+        {:ok,_} = Agent.start_link(fn -> list end, name: Agent_active_nodes)
+        # Creating Agent to keep track of the active actors in the Node Ended
         creating_topology_for_each_actor(0,topology,list)
-        GenServer.cast(Enum.random(list),{:startGossip})
-        #creating_topology(to_string(Enum.at(elem(server_tuple,1),1)),list)
+
+        #Start Gossip if the input is gossip
+        if(algorithm=="gossip") do
+            GenServer.cast(Enum.random(list),{:startGossip})
+            
+        end
     end
 
     def spawn_processes(numNodes,start_value,l) do
@@ -38,7 +46,6 @@ use GenServer
                 start_value=start_value+1
                 creating_topology_for_each_actor(start_value,topology,list)
             end
-
 
     end
 
@@ -69,13 +76,9 @@ use GenServer
         case topology do
 
             "full" -> 
-                #IO.inspect l
             if(start_value<Enum.count(list)) do
-                #IO.puts "#{start_value}   #{position}"
-                #IO.inspect ((start_value==position)==false)
                  if(((start_value==position)==false)) do
                     l=l++[Enum.at(list,start_value)]
-                    #IO.puts "Entered equal #{start_value}"
                 end
                 start_value=start_value+1
                 l=get_neighbours(position,topology,list,start_value,l)
@@ -118,23 +121,17 @@ use GenServer
                     IO.puts "#{n}    #{inspect l}"
 
             "line" -> 
-                   # IO.puts position
-                   # IO.puts Enum.count(list)-1
+                   
                     if((position==0)==true) do
-                        #IO.puts "Entered 0"
                         l=l++[Enum.at(list,position+1)]
-                        #IO.inspect l
-                    else if((position==Enum.count(list)-1)==true)do
-                         #IO.puts "Entered last"
-                         l=l++[Enum.at(list,position-1)]
-                         #IO.inspect l
                     else 
-                        #IO.puts "Entered mid"
+                    if((position==Enum.count(list)-1)==true)do
+                         l=l++[Enum.at(list,position-1)]
+                    else 
                         l=l++[Enum.at(list,position-1)]
                         l=l++[Enum.at(list,position+1)] 
-                        #IO.inspect l
-                        end
-                      end
+                     end
+                    end
 
                     l
             "imp2D" -> 
@@ -215,7 +212,13 @@ use GenServer
     def handle_cast({:startGossip},state) do
         IO.puts "#{inspect self()} #{state[:count]}"
 
-        if(state[:count]>=@gossip) do
+        # Check if all the neigbours of this node is dead or not
+        if(Enum.count(state[:list_of_neighbours])==0) do
+           get_random_node(self())
+        else if(state[:count]>=@gossip) do
+            #list=Agent.get(Agent_active_nodes,fn state -> state end) -- [self()]
+            IO.puts " Reached gossip limit #{inspect self()}"
+            #Agent.update(Agent_active_nodes, fn state -> list end) 
             kill_actor(self())
         else
             {_,state_list_count}=Map.get_and_update(state,:count, fn current_value -> {current_value,current_value+1} end)
@@ -230,13 +233,17 @@ use GenServer
                 end
             else
                 Process.sleep(1_00)
+                #Remove the killed neighbour
+               {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,List.delete(state[:list_of_neighbours],neighbour)} end)
+               state=Map.merge(state,state_list_neighbours) 
+                #End
                 if(state[:count]<@gossip) do
                      GenServer.cast(self(),{:startGossip})
                 end
             end
              {:noreply,state}
         end
-
+     end
         {:noreply,state}
     end
  
@@ -250,8 +257,38 @@ use GenServer
 
     def kill_actor(process_id) do
         IO.puts "Killing #{inspect process_id}"
-        Process.exit(process_id,:normal)
-        #IO.puts "Killed"
+        list=Agent.get(Agent_active_nodes,fn state -> state end) --[process_id]
+        Agent.update(Agent_active_nodes, fn state -> list end) 
+        # Check if all the nodes in the agent are dead 
+        #IO.puts "#{value} #{inspect process_id} #{inspect Agent.get(Agent_active_nodes,fn state -> state end)}" 
+        IO.inspect Agent.get(Agent_active_nodes,fn state -> state end)
+        IO.inspect Enum.all?(Agent.get(Agent_active_nodes,fn state -> state end),fn(x) -> Process.alive?(x)==false end)
+        if(Enum.all?(Agent.get(Agent_active_nodes,fn state -> state end),fn(x) -> Process.alive?(x)==false end)==true) do
+            #IO.inspect Agent.get(Agent_active_nodes,fn state -> state end)
+            IO.inspect "All Nodes are dead"
+            list=[];
+            Agent.update(Agent_active_nodes,fn state ->list end)
+            Process.exit(process_id,:normal)
+        else
+            Process.exit(process_id,:normal)
+        end
+        
     end
 
+    def get_random_node(process_id) do     
+         list=Agent.get(Agent_active_nodes,fn state -> state end)--[process_id]
+         if(Enum.count(list)==0) do
+             kill_actor(process_id)
+         else 
+            #Agent.update(Agent_active_nodes, fn state -> list end)
+            random_actor=Enum.random(list);
+            if(Process.alive?(random_actor))do
+                 GenServer.cast(random_actor,{:startGossip})  
+                 kill_actor(process_id)  
+            else
+                kill_actor(process_id) 
+                get_random_node(random_actor)
+            end
+         end
+    end     
 end
