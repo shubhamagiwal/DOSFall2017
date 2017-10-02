@@ -12,14 +12,16 @@ use GenServer
         {:ok,%{}}
     end
 
-    def handle_cast({:update_main,list,topology,seconds},state) do
+    def handle_cast({:update_main,list,topology,start_mins,start_seconds},state) do
         {_,state_list}=Map.get_and_update(state,:list, fn current_value -> {current_value,list} end)
         {_,state_list_topology}=Map.get_and_update(state,:topology, fn current_value -> {current_value,topology} end)
-        {_,state_seconds}=Map.get_and_update(state,:time, fn current_value -> {current_value,seconds} end)
+        {_,state_seconds}=Map.get_and_update(state,:time_seconds, fn current_value -> {current_value,start_seconds} end)
+        {_,state_mins}=Map.get_and_update(state,:time_mins, fn current_value -> {current_value,start_mins} end)
 
         state=Map.merge(state,state_list)
         state=Map.merge(state,state_list_topology)
         state=Map.merge(state,state_seconds)
+        state=Map.merge(state,state_mins)
         #IO.puts "#{inspect self()} #{inspect state}"
         {:noreply,state}
     end
@@ -50,10 +52,23 @@ use GenServer
     def handle_cast({:kill_main},state) do
         IO.inspect "All Nodes are dead in. Calculate the time now"
         IO.inspect "Killing main"
-
-        {_,final_timer,_}=:erlang.timestamp()
-        IO.inspect "Start timer- #{state[:time]}"
-        IO.inspect "end timer- #{final_timer}"
+        #{_,final_timer,_}=:erlang.timestamp()
+        {_,fmins,fsecs} = :erlang.time()
+        #IO.inspect "Start timer- #{state[:time]}"
+        #IO.inspect "end timer- #{final_timer}"
+        IO.puts "State below"
+        IO.puts "Minutes"
+        IO.inspect "Start Mins #{state[:time_mins]}"
+        IO.inspect "Start Seconds #{state[:time_seconds]}"
+        IO.puts "End minutes #{fmins}"
+        IO.puts "End seconds #{fsecs}"        
+        if(state[:time_mins]==fmins) do
+            IO.puts "Time the program ran for is #{fsecs-state[:time_seconds]} seconds"
+        else
+            runtime=(fmins*60+fsecs)-(state[:time_mins]*60-state[:time_seconds])
+            IO.puts "Time the program ran for is #{runtime} seconds"
+        end
+        #IO.inspect :erlang.time()
         Process.exit(self(),:normal)
         {:noreply,state}
     end

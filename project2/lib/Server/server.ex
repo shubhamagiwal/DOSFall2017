@@ -20,8 +20,9 @@ use GenServer
         #Main Process Creation
         Project2.Main.start_main_process();
         creating_topology_for_each_actor(0,topology,list,algorithm)
-        {_,seconds,_}=:erlang.timestamp()
-        GenServer.cast(Main_process,{:update_main,list,topology,seconds})
+        #{_,seconds,_}=:erlang.timestamp()
+        {_,start_mins,start_seconds}=:erlang.time()
+        GenServer.cast(Main_process,{:update_main,list,topology,start_mins,start_seconds})
         #Main Process End
 
         #Start Gossip if the input is gossip
