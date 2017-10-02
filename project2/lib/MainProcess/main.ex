@@ -3,6 +3,7 @@ use GenServer
 
     def start_main_process do
         {:ok,_} = GenServer.start_link(__MODULE__,:ok,name: Main_process)
+        #pid
     end 
 
    #Server Side Implementation
@@ -48,6 +49,8 @@ use GenServer
 
     def handle_cast({:kill_main},state) do
         IO.inspect "All Nodes are dead in. Calculate the time now"
+        IO.inspect "Killing main"
+
         {_,final_timer,_}=:erlang.timestamp()
         IO.inspect "Start timer- #{state[:time]}"
         IO.inspect "end timer- #{final_timer}"
@@ -56,8 +59,9 @@ use GenServer
     end
 
     def handle_cast({:start_gossip_alive_node},state) do
+        Process.sleep(1_0)
         if(Enum.count(state[:list])==0) do
-           # IO.inspect "All Nodes are dead in. Calculate the time now"
+            #IO.inspect "All Nodes are dead in. Calculate the time now"
             GenServer.cast(self(),{:kill_main})
             {:noreply,state}
         else 

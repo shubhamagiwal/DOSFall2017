@@ -27,6 +27,9 @@ use GenServer
         #Start Gossip if the input is gossip
         if(algorithm=="gossip") do
             GenServer.cast(Main_process,{:random_node}) 
+        else if(algorithm=="push-sum") do
+              #GenServer.cast(Main_process,{:random_node}) 
+             end
         end
     end
 
@@ -258,8 +261,18 @@ use GenServer
     def kill_actor(process_id) do
          IO.puts "Killing #{inspect process_id}"
          GenServer.cast(Main_process,{:exit_process,process_id})  
-         IO.puts "Starting new Node Gossip"     
-         GenServer.cast(Main_process,{:start_gossip_alive_node})
+         #IO.inspect "Main Process #{ inspect Process.whereis(Main_process)}"
+         #IO.puts "Starting new Node Gossip"     
+         #GenServer.cast(Main_process,{:start_gossip_alive_node})
+         if(Process.whereis(Main_process)!=nil) do
+            if(Process.alive?(Process.whereis(Main_process))) do
+              IO.inspect "Main Process #{ inspect Process.whereis(Main_process)}"
+              IO.puts "Starting new Node Gossip"     
+              GenServer.cast(Main_process,{:start_gossip_alive_node})
+            end
+
+        end
+       
     end
 
      def handle_cast({:updatepushsum,s,w,numberOfrounds,list_of_neighbours,topology},state) do
