@@ -35,16 +35,17 @@ use GenServer
             #Process.sleep(1_00)
             {_,state_list}=Map.get_and_update(state,:list, fn current_value -> {current_value,List.delete(state[:list],process_id)} end)
             state=Map.merge(state,state_list) 
-            if(Enum.count(state[:list])==1) do
-                Process.exit(Enum.at(state[:list],0),:normal)
-                {_,state_list}=Map.get_and_update(state,:list, fn current_value -> {current_value,List.delete(state[:list],Enum.at(state[:list],0))} end)
-                state=Map.merge(state,state_list) 
-            end
+            # if(Enum.count(state[:list])==1) do
+            #     Process.exit(Enum.at(state[:list],0),:normal)
+            #     {_,state_list}=Map.get_and_update(state,:list, fn current_value -> {current_value,List.delete(state[:list],Enum.at(state[:list],0))} end)
+            #     state=Map.merge(state,state_list) 
+            # end
             {:noreply,state}
     end
 
     def handle_cast({:kill_main},state) do
         IO.inspect "All Nodes are dead in. Calculate the time now"
+        IO.inspect "awersome"
         Process.exit(self(),:normal)
         {:noreply,state}
     end
