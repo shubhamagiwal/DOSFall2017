@@ -52,23 +52,29 @@ use GenServer
     def handle_cast({:kill_main},state) do
         IO.inspect "All Nodes are dead in. Calculate the time now"
         IO.inspect "Killing main"
-        #{_,final_timer,_}=:erlang.timestamp()
         {_,fmins,fsecs} = :erlang.time()
-        #IO.inspect "Start timer- #{state[:time]}"
-        #IO.inspect "end timer- #{final_timer}"
         IO.puts "State below"
         IO.puts "Minutes"
         IO.inspect "Start Mins #{state[:time_mins]}"
         IO.inspect "Start Seconds #{state[:time_seconds]}"
         IO.puts "End minutes #{fmins}"
         IO.puts "End seconds #{fsecs}"        
+        # if(state[:time_mins]==fmins) do
+        #     IO.puts "Time the program ran for is #{fsecs-state[:time_seconds]} seconds"
+        # else
+        #     runtime=(fmins*60+fsecs)-(state[:time_mins]*60+state[:time_seconds])
+        #     IO.puts "Time the program ran for is #{runtime} seconds"
+        # end
         if(state[:time_mins]==fmins) do
             IO.puts "Time the program ran for is #{fsecs-state[:time_seconds]} seconds"
-        else
-            runtime=(fmins*60+fsecs)-(state[:time_mins]*60-state[:time_seconds])
+        else if(state[:time_mins]>fmins) do
+            runtime=(3600-state[:time_mins]*60-state[:time_seconds])+fmins*60+fsecs
+            IO.puts "Time the program ran for is #{runtime} seconds"
+        else 
+            runtime=(fmins*60+fsecs)-(state[:time_mins]*60+state[:time_seconds])
             IO.puts "Time the program ran for is #{runtime} seconds"
         end
-        #IO.inspect :erlang.time()
+        end
         Process.exit(self(),:normal)
         {:noreply,state}
     end
