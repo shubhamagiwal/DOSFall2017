@@ -351,7 +351,7 @@ use GenServer
                 state=Map.merge(state,state_numRounds_new)
                 {_,state_current_ratio}=Map.get_and_update(state,:currentratio, fn current_value -> {current_value,state_s/state_w} end)
                 state=Map.merge(state,state_current_ratio)
-                Process.sleep(1_000)
+                #Process.sleep(1_000)
                 #IO.inspect "#{inspect state}"
                 # Pick up a random alive neighbour and send half of s and w value
                 neighbour=Enum.random(state[:list_of_neighbours])

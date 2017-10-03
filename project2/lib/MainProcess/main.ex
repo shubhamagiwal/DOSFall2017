@@ -103,7 +103,7 @@ use GenServer
 
 
     def handle_cast({:start_push_sum_alive_node},state) do
-        Process.sleep(1_0)
+        #Process.sleep(1_0)
         if(Enum.count(state[:list])==0) do
             #IO.inspect "All Nodes are dead in. Calculate the time now"
             GenServer.cast(self(),{:kill_main})
