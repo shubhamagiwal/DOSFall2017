@@ -21,6 +21,7 @@ use GenServer
         #Main Process Creation
         Project2.Main.start_main_process();
         IO.puts "....build topology"
+        :observer.start
         creating_topology_for_each_actor(0,topology,list,algorithm)
         #{_,start_mins,start_seconds}=:erlang.time()
         time_milli=:erlang.system_time(:millisecond)
@@ -49,7 +50,13 @@ use GenServer
     def creating_topology_for_each_actor(start_value,topology,list,algorithm) do
             
             if(start_value<Enum.count(list)) do
-                list_of_neighbours=creating_topology(start_value,topology,list)
+                #IO.inspect [Enum.at(list,start_value)]
+                if(topology=="full") do
+                  list_of_neighbours=list--[Enum.at(list,start_value)]
+                else
+                  list_of_neighbours=creating_topology(start_value,topology,list)
+                end
+
                 #IO.inspect "List of neighbours #{inspect list_of_neighbours}"
                 if(algorithm=="gossip") do
                    GenServer.cast(Enum.at(list,start_value),{:updategossip,topology,list_of_neighbours})
