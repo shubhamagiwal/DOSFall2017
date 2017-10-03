@@ -21,7 +21,7 @@ use GenServer
         #Main Process Creation
         Project2.Main.start_main_process();
         IO.puts "....build topology"
-        :observer.start
+        #:observer.start
         creating_topology_for_each_actor(0,topology,list,algorithm)
         #{_,start_mins,start_seconds}=:erlang.time()
         time_milli=:erlang.system_time(:millisecond)
