@@ -46,51 +46,72 @@ use GenServer
     end
 
     def handle_cast({:exit_process,process_id,is_alive_node},state) do
-
             if(is_alive_node && state[:alive_nodes]>0) do
-                
+               
+                old_list=state[:list];
+                new_list=state[:list]--[process_id]
+                #IO.puts "old_list #{inspect old_list} new_list #{inspect new_list}"
+                IO.puts "Killing #{inspect process_id} -> Status of the node #{inspect is_alive_node} alive #{inspect state[:alive_nodes]} dead#{inspect state[:dead_nodes]} old_list_new_list_equal=#{inspect old_list==new_list}"
+                if(Enum.count(old_list)==Enum.count(new_list)) do
+                    {_,max_count_convergence}=Map.get_and_update(state,:count, fn current_value -> {current_value,current_value+1} end)
+                    state=Map.merge(state,max_count_convergence)
 
-                {_,state_alive_nodes}=Map.get_and_update(state,:alive_nodes, fn current_value -> {current_value,current_value-1} end)
-                state=Map.merge(state,state_alive_nodes)
-                {_,state_dead_nodes}=Map.get_and_update(state,:dead_nodes, fn current_value -> {current_value,current_value+1} end)
-                state=Map.merge(state,state_dead_nodes)
-                #IO.puts "Killing #{inspect process_id}"
-                #IO.puts "#{inspect state[:alive_nodes]}"
-                #IO.puts "#{inspect state[:dead_nodes]}"
-                if(state[:dead_nodes]==1) do
-                    {_,state_list}=Map.get_and_update(state,:list, fn current_value -> {current_value,List.delete(state[:list],process_id)} end)
-                    state=Map.merge(state,state_list) 
-                    #{:noreply,state}
-                else if(state[:alive_nodes]==1) do
-                     GenServer.cast(self(),{:kill_main})
-                else if(
-                        ((state[:alive_nodes]+1)/(state[:dead_nodes]-1))>((state[:alive_nodes])/(state[:dead_nodes]))
-                        and state[:alive_nodes]>0
-                      ) do
-                         {_,state_list}=Map.get_and_update(state,:list, fn current_value -> {current_value,List.delete(state[:list],process_id)} end)
-                         state=Map.merge(state,state_list) 
-                         #IO.inspect state
-                         {_,max_count_convergence}=Map.get_and_update(state,:count, fn current_value -> {current_value,0} end)
-                         state=Map.merge(state,max_count_convergence) 
-                         #{:noreply,state}                     
-                else if(state[:count]<@maxconvergence and state[:alive_nodes]>0) do
-                     #IO.puts "state count #{state[:count]} maxconvergence #{@maxconvergence}"
-                     {_,max_count_convergence}=Map.get_and_update(state,:count, fn current_value -> {current_value,current_value+1} end)
-                     state=Map.merge(state,max_count_convergence)
-                     #{:noreply,state}
+                    if(state[:count]>100) do
+                         GenServer.cast(self(),{:kill_main})
+                    else
+                    #Do nothing 
                     end
-                   end
-                end
-             end
 
-            else
-                #IO.puts "#{inspect process_id} that is killing the main node"
-                GenServer.cast(self(),{:kill_main})
-                #{:noreply,state}
+                 else 
+                    {_,list_new}=Map.get_and_update(state,:list, fn current_value -> {current_value,new_list} end)
+                    state=Map.merge(state,list_new)
+                    {_,max_count_convergence}=Map.get_and_update(state,:count, fn current_value -> {current_value,0} end)
+                    state=Map.merge(state,max_count_convergence)
+                 end
             end
-
              {:noreply,state}
- end
+        end
+
+            #     {_,state_alive_nodes}=Map.get_and_update(state,:alive_nodes, fn current_value -> {current_value,current_value-1} end)
+            #     state=Map.merge(state,state_alive_nodes)
+            #     {_,state_dead_nodes}=Map.get_and_update(state,:dead_nodes, fn current_value -> {current_value,current_value+1} end)
+            #     state=Map.merge(state,state_dead_nodes)
+            #     #IO.puts "Killing #{inspect process_id}"
+            #     IO.puts "alive #{inspect state[:alive_nodes]} dead#{inspect state[:dead_nodes]}"
+            #     #IO.puts ""
+            #     if(state[:dead_nodes]==1) do
+            #         {_,state_list}=Map.get_and_update(state,:list, fn current_value -> {current_value,List.delete(state[:list],process_id)} end)
+            #         state=Map.merge(state,state_list) 
+            #         #{:noreply,state}
+            #     else if(state[:alive_nodes]==1) do
+            #          GenServer.cast(self(),{:kill_main})
+            #     else if(
+            #             ((state[:alive_nodes]+1)/(state[:dead_nodes]-1))>((state[:alive_nodes])/(state[:dead_nodes]))
+            #             and state[:alive_nodes]>0
+            #           ) do
+            #              {_,state_list}=Map.get_and_update(state,:list, fn current_value -> {current_value,List.delete(state[:list],process_id)} end)
+            #              state=Map.merge(state,state_list) 
+            #              #IO.inspect state
+            #              {_,max_count_convergence}=Map.get_and_update(state,:count, fn current_value -> {current_value,0} end)
+            #              state=Map.merge(state,max_count_convergence) 
+            #              #{:noreply,state}                     
+            #     else if(state[:count]<@maxconvergence and state[:alive_nodes]>0) do
+            #          #IO.puts "state count #{state[:count]} maxconvergence #{@maxconvergence}"
+            #          {_,max_count_convergence}=Map.get_and_update(state,:count, fn current_value -> {current_value,current_value+1} end)
+            #          state=Map.merge(state,max_count_convergence)
+            #          #{:noreply,state}
+            #         end
+            #        end
+            #     end
+            #  end
+
+            # else
+            #     #IO.puts "#{inspect process_id} that is killing the main node"
+            #     GenServer.cast(self(),{:kill_main})
+            #     #{:noreply,state}
+            # end
+
+
 
     def handle_cast({:kill_main},state) do
         end_time_milli=:erlang.system_time(:millisecond)

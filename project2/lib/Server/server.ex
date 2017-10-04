@@ -216,43 +216,42 @@ use GenServer
         {:noreply,state}
     end
 
+    def handle_cast({:removeNeighbour,neigbhbour},state) do
+        new_list=state[:list_of_neighbours]--[neigbhbour]
+        {_,state_is_new_list_of_neighbouts}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,new_list} end)
+        state=Map.merge(state,state_is_new_list_of_neighbouts)
+        {:noreply,state}
+    end
+
   def handle_cast({:startGossip,find_neighbour_alive_node},state) do
-    #Process.sleep(1_000)
-    if(state[:is_alive]==true and state[:count]<@gossip) do
+    #Process.sleep(1_500)
+    if(state[:count]<@gossip) do
 
         case find_neighbour_alive_node  do
             true -> # This is used to  find the alive neighbour and do gossip on it
             if(Enum.count(state[:list_of_neighbours])>0) do
                 list_of_neighbours=state[:list_of_neighbours]
                 random_neighbour=Enum.random(list_of_neighbours)
-
-                if(neighbour_is_alive(random_neighbour)) do
-                    GenServer.cast(random_neighbour,{:startGossip,false})
-                    #Process.sleep(1_00)
-                    GenServer.cast(self(),{:startGossip,true})
-                    #{:noreply,state}
-                else
-                    #IO.puts "Random neighbour #{inspect random_neighbour} for process #{inspect self()} list #{inspect  state[:list_of_neighbours]}"
-                    {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,List.delete(state[:list_of_neighbours],random_neighbour)} end)
-                    state=Map.merge(state,state_list_neighbours) 
-                    GenServer.cast(self(),{:startGossip,true})
-                    #{:noreply,state}
+                GenServer.cast(random_neighbour,{:startGossip,false}) # Start gossip on the given node
+                if(state[:count]<@gossip) do
+                    GenServer.cast(self(),{:startGossip,true}) # Look for neigbhbours
+                else if(state[:count]>=@gossip) do
+                     GenServer.cast(Main_process,{:exit_process,self(),state[:state_is_alive]}) 
+                    end
                 end
-            
+                
              else
-                # The Nodes needs to be terminated and it must be terminated
-                #IO.puts "Given #{inspect self()} is killed"
                 {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,[]} end)
                 state=Map.merge(state,state_list_neighbours) 
                 {_,state_is_alive}=Map.get_and_update(state,:is_alive, fn current_value -> {current_value,false} end)
                 state=Map.merge(state,state_is_alive) 
-                #Process.sleep(1_000)
+                {_,state_is_count}=Map.get_and_update(state,:count, fn current_value -> {current_value,@gossip} end)
+                state=Map.merge(state,state_is_count) 
                 GenServer.cast(Main_process,{:exit_process,self(),true}) 
-                #{:noreply,state}
             end
             
               false ->
-                    #IO.puts "Gossip on #{inspect self()} #{inspect state[:count]} find_neighbour #{find_neighbour_alive_node} #{state[:is_alive]}"
+                    IO.puts "Gossip on #{inspect self()} #{inspect state[:count]} find_neighbour #{find_neighbour_alive_node} #{state[:is_alive]}"
                     # Increment the count by 1 for the given gossip node
                     # Increment the count is done
 
@@ -261,160 +260,168 @@ use GenServer
                         #IO.puts "Given #{inspect self()} is killed"
                         {_,state_is_alive}=Map.get_and_update(state,:is_alive, fn current_value -> {current_value,false} end)
                         state=Map.merge(state,state_is_alive) 
+                        
+                        # Send an update request to all the neighbours to remove self() from the list
+                         list_of_neighbours=state[:list_of_neighbours]
+                         if(Enum.count(list_of_neighbours)>0) do
+                            Enum.each(list_of_neighbours, fn(x) ->GenServer.cast(x,{:removeNeighbour,self()})end)
+                         end
+                         # Update completed
                         {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,[]} end)
                         state=Map.merge(state,state_list_neighbours) 
                         GenServer.cast(Main_process,{:exit_process,self(),true})
-                        #{:noreply,state}
                     else
                         {_,state_list_count}=Map.get_and_update(state,:count, fn current_value -> {current_value,current_value+1} end)
                         state=Map.merge(state,state_list_count)
+                        #Find my neighbours to gossip
                         GenServer.cast(self(),{:startGossip,true})
-                        #{:noreply,state}
                     end
         end
-    else if(state[:is_alive]==false) do
-         #Do nothing
-    else if(state[:is_alive]==true and state[:count]>=@gossip) do
-          #IO.puts "#{inspect state[:count]}"
-          {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,[]} end)
-          state=Map.merge(state,state_list_neighbours) 
-          {_,state_is_alive}=Map.get_and_update(state,:is_alive, fn current_value -> {current_value,false} end)
-         state=Map.merge(state,state_is_alive) 
-         GenServer.cast(Main_process,{:exit_process,self(),true})
+    else if(state[:count]>=@gossip) do
+         {_,state_is_alive}=Map.get_and_update(state,:is_alive, fn current_value -> {current_value,false} end)
+         state=Map.merge(state,state_is_alive)  
+         # Send an update request to all the neighbours to remove self() from the list
+         list_of_neighbours=state[:list_of_neighbours]
+            if(Enum.count(list_of_neighbours)>0) do
+                Enum.each(list_of_neighbours, fn(x) ->GenServer.cast(x,{:removeNeighbour,self()})end)
+            end
+        # Update completed
+        {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,[]} end)
+        state=Map.merge(state,state_list_neighbours) 
+        GenServer.cast(Main_process,{:exit_process,self(),true})
          #{:noreply,state}
          end
-       end
     end
     {:noreply,state}
 end
 
     # Push Sum based algorithm Update
 
-     def handle_cast({:updatepushsum,s,w,numberOfrounds,list_of_neighbours,topology},state) do
-        {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,list_of_neighbours} end)
-        {_,state_s}=Map.get_and_update(state,:s, fn current_value -> {current_value,s} end)
-        {_,state_w}=Map.get_and_update(state,:w, fn current_value -> {current_value,w} end)
-        {_,state_numRounds}=Map.get_and_update(state,:numRounds, fn current_value -> {current_value,numberOfrounds} end)
-        {_,state_list_topology}=Map.get_and_update(state,:topology, fn current_value -> {current_value,topology} end)
+    #  def handle_cast({:updatepushsum,s,w,numberOfrounds,list_of_neighbours,topology},state) do
+    #     {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,list_of_neighbours} end)
+    #     {_,state_s}=Map.get_and_update(state,:s, fn current_value -> {current_value,s} end)
+    #     {_,state_w}=Map.get_and_update(state,:w, fn current_value -> {current_value,w} end)
+    #     {_,state_numRounds}=Map.get_and_update(state,:numRounds, fn current_value -> {current_value,numberOfrounds} end)
+    #     {_,state_list_topology}=Map.get_and_update(state,:topology, fn current_value -> {current_value,topology} end)
         
-        #Needed for killing the node
-        {_,state_current_ratio}=Map.get_and_update(state,:currentratio, fn current_value -> {current_value,s/w} end)
+    #     #Needed for killing the node
+    #     {_,state_current_ratio}=Map.get_and_update(state,:currentratio, fn current_value -> {current_value,s/w} end)
 
-        state=Map.merge(state,state_list_neighbours)
-        state=Map.merge(state,state_s)
-        state=Map.merge(state,state_w)
-        state=Map.merge(state,state_numRounds)
-        state=Map.merge(state,state_list_topology)
-        state=Map.merge(state,state_current_ratio)
+    #     state=Map.merge(state,state_list_neighbours)
+    #     state=Map.merge(state,state_s)
+    #     state=Map.merge(state,state_w)
+    #     state=Map.merge(state,state_numRounds)
+    #     state=Map.merge(state,state_list_topology)
+    #     state=Map.merge(state,state_current_ratio)
 
-        #IO.puts "#{inspect self()} #{inspect state}"
-        {:noreply,state}
+    #     #IO.puts "#{inspect self()} #{inspect state}"
+    #     {:noreply,state}
 
-     end
+    #  end
 
-     def handle_cast({:startpushsum,s,w},state) do
-         #IO.inspect "I have reacher heere"
-         # Get the state value of s and w
-         state_s=state[:s]
-         state_w=state[:w]
-         state_count=state[:count]
-         #Increment the present value for s and w
-         state_s=state_s+s
-         state_w=state_w+w
-         # Difference needed for killing the node
-         difference=(state_s/state_w)-state[:currentratio]
-         #IO.puts "#{inspect self()} #{inspect state_s/state_w}"
-         #Process.sleep(1_000)
+#      def handle_cast({:startpushsum,s,w},state) do
+#          #IO.inspect "I have reacher heere"
+#          # Get the state value of s and w
+#          state_s=state[:s]
+#          state_w=state[:w]
+#          state_count=state[:count]
+#          #Increment the present value for s and w
+#          state_s=state_s+s
+#          state_w=state_w+w
+#          # Difference needed for killing the node
+#          difference=(state_s/state_w)-state[:currentratio]
+#          #IO.puts "#{inspect self()} #{inspect state_s/state_w}"
+#          #Process.sleep(1_000)
 
-    if (Enum.count(state[:list_of_neighbours])==0) do
-             kill_actor(self(),to_string("push-sum"))
-        else if(difference< :math.pow(10,-10) && state_count<@pushsumcount) do
-            #Update the state values of s and w to half the value
+#     if (Enum.count(state[:list_of_neighbours])==0) do
+#              kill_actor(self(),to_string("push-sum"))
+#         else if(difference< :math.pow(10,-10) && state_count<@pushsumcount) do
+#             #Update the state values of s and w to half the value
             
-            {_,state_s_new}=Map.get_and_update(state,:s, fn current_value -> {current_value,state_s/2} end)
-            state=Map.merge(state,state_s_new)
-            {_,state_w_new}=Map.get_and_update(state,:w, fn current_value -> {current_value,state_w/2} end)
-            state=Map.merge(state,state_w_new)
-            {_,state_numRounds_new}=Map.get_and_update(state,:numRounds, fn current_value -> {current_value,current_value+1} end)
-            state=Map.merge(state,state_numRounds_new)
-            {_,state_current_ratio}=Map.get_and_update(state,:currentratio, fn current_value -> {current_value,state_s/state_w} end)
-            state=Map.merge(state,state_current_ratio)
+#             {_,state_s_new}=Map.get_and_update(state,:s, fn current_value -> {current_value,state_s/2} end)
+#             state=Map.merge(state,state_s_new)
+#             {_,state_w_new}=Map.get_and_update(state,:w, fn current_value -> {current_value,state_w/2} end)
+#             state=Map.merge(state,state_w_new)
+#             {_,state_numRounds_new}=Map.get_and_update(state,:numRounds, fn current_value -> {current_value,current_value+1} end)
+#             state=Map.merge(state,state_numRounds_new)
+#             {_,state_current_ratio}=Map.get_and_update(state,:currentratio, fn current_value -> {current_value,state_s/state_w} end)
+#             state=Map.merge(state,state_current_ratio)
 
-            #Pick up a random alive neighbour and send half of s and w value
-            neighbour=Enum.random(state[:list_of_neighbours])
-            #IO.puts "process_id #{inspect self()} neighbour #{inspect neighbour} s #{state[:s]} w #{state[:w]}"
+#             #Pick up a random alive neighbour and send half of s and w value
+#             neighbour=Enum.random(state[:list_of_neighbours])
+#             #IO.puts "process_id #{inspect self()} neighbour #{inspect neighbour} s #{state[:s]} w #{state[:w]}"
 
-                if neighbour_is_alive(neighbour) do
-                    GenServer.cast(neighbour,{:startpushsum,state[:s],state[:w]})
-                else
-                    {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,List.delete(state[:list_of_neighbours],neighbour)} end)
-                    state=Map.merge(state,state_list_neighbours) 
-                    #Revert back the s and w value
-                    {_,state_s_new}=Map.get_and_update(state,:s, fn current_value -> {current_value,current_value*2-s} end)
-                    state=Map.merge(state,state_s_new)
-                    {_,state_w_new}=Map.get_and_update(state,:w, fn current_value -> {current_value,current_value*2-w} end)
-                    state=Map.merge(state,state_w_new)
-                    {_,state_numRounds_new}=Map.get_and_update(state,:numRounds, fn current_value -> {current_value,current_value-1} end)
-                    state=Map.merge(state,state_numRounds_new)
-                    {_,state_current_ratio}=Map.get_and_update(state,:currentratio, fn current_value -> {current_value,(state_s-s)/(state_w-w)} end)
-                    state=Map.merge(state,state_current_ratio)
-                    #Call itself again to get an alive neighbour for its current s and w value
-                    GenServer.cast(self(),{:startpushsum,0,0})
-                end
-         else if(difference < :math.pow(10,-10) && state_count>=@pushsumcount) do
-              # Kill the process and choose a random node to start the pushsum again
-              kill_actor(self(),to_string("push-sum"))
+#                 if neighbour_is_alive(neighbour) do
+#                     GenServer.cast(neighbour,{:startpushsum,state[:s],state[:w]})
+#                 else
+#                     {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,List.delete(state[:list_of_neighbours],neighbour)} end)
+#                     state=Map.merge(state,state_list_neighbours) 
+#                     #Revert back the s and w value
+#                     {_,state_s_new}=Map.get_and_update(state,:s, fn current_value -> {current_value,current_value*2-s} end)
+#                     state=Map.merge(state,state_s_new)
+#                     {_,state_w_new}=Map.get_and_update(state,:w, fn current_value -> {current_value,current_value*2-w} end)
+#                     state=Map.merge(state,state_w_new)
+#                     {_,state_numRounds_new}=Map.get_and_update(state,:numRounds, fn current_value -> {current_value,current_value-1} end)
+#                     state=Map.merge(state,state_numRounds_new)
+#                     {_,state_current_ratio}=Map.get_and_update(state,:currentratio, fn current_value -> {current_value,(state_s-s)/(state_w-w)} end)
+#                     state=Map.merge(state,state_current_ratio)
+#                     #Call itself again to get an alive neighbour for its current s and w value
+#                     GenServer.cast(self(),{:startpushsum,0,0})
+#                 end
+#          else if(difference < :math.pow(10,-10) && state_count>=@pushsumcount) do
+#               # Kill the process and choose a random node to start the pushsum again
+#               kill_actor(self(),to_string("push-sum"))
 
-        else if(difference >:math.pow(10,-10)) do
-                 # Update the state values of s and w to half the value 
-                #IO.puts "process_id #{inspect self()} s #{state_s/2} w #{state_w/2}"
-                {_,state_s_new}=Map.get_and_update(state,:s, fn current_value -> {current_value,state_s/2} end)
-                state=Map.merge(state,state_s_new)
-                {_,state_w_new}=Map.get_and_update(state,:w, fn current_value -> {current_value,state_w/2} end)
-                state=Map.merge(state,state_w_new)
-                {_,state_numRounds_new}=Map.get_and_update(state,:numRounds, fn current_value -> {current_value,0} end)
-                state=Map.merge(state,state_numRounds_new)
-                {_,state_current_ratio}=Map.get_and_update(state,:currentratio, fn current_value -> {current_value,state_s/state_w} end)
-                state=Map.merge(state,state_current_ratio)
-                #Process.sleep(1_000)
-                #IO.inspect "#{inspect state}"
-                # Pick up a random alive neighbour and send half of s and w value
-                neighbour=Enum.random(state[:list_of_neighbours])
-                #IO.puts "process_id #{inspect self()} neighbour #{inspect neighbour} s #{state[:s]/2} w #{state[:w]/2}"
-                if neighbour_is_alive(neighbour) do
-                    GenServer.cast(neighbour,{:startpushsum,state[:s],state[:w]})
-                else
-                    {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,List.delete(state[:list_of_neighbours],neighbour)} end)
-                    state=Map.merge(state,state_list_neighbours) 
-                    #Revert back the s and w value and set the :numrounds to @pushsumcount+1 so that the node gets killed in the self call
-                    {_,state_s_new}=Map.get_and_update(state,:s, fn current_value -> {current_value,current_value*2-s} end)
-                    state=Map.merge(state,state_s_new)
-                    {_,state_w_new}=Map.get_and_update(state,:w, fn current_value -> {current_value,current_value*2-w} end)
-                    state=Map.merge(state,state_w_new)
-                    {_,state_numRounds_new}=Map.get_and_update(state,:numRounds, fn current_value -> {current_value,current_value+@pushsumcount+1} end)
-                    state=Map.merge(state,state_numRounds_new)
-                    {_,state_current_ratio}=Map.get_and_update(state,:currentratio, fn current_value -> {current_value,(state_s-s)/(state_w-w)} end)
-                    state=Map.merge(state,state_current_ratio)
-                    #Call itself again to get an alive neighbour for its current s and w value
-                    GenServer.cast(self(),{:startpushsum,0,0})
-                end
-             end
-           end
-        end
-    end
-     {:noreply,state}
-end
+#         else if(difference >:math.pow(10,-10)) do
+#                  # Update the state values of s and w to half the value 
+#                 #IO.puts "process_id #{inspect self()} s #{state_s/2} w #{state_w/2}"
+#                 {_,state_s_new}=Map.get_and_update(state,:s, fn current_value -> {current_value,state_s/2} end)
+#                 state=Map.merge(state,state_s_new)
+#                 {_,state_w_new}=Map.get_and_update(state,:w, fn current_value -> {current_value,state_w/2} end)
+#                 state=Map.merge(state,state_w_new)
+#                 {_,state_numRounds_new}=Map.get_and_update(state,:numRounds, fn current_value -> {current_value,0} end)
+#                 state=Map.merge(state,state_numRounds_new)
+#                 {_,state_current_ratio}=Map.get_and_update(state,:currentratio, fn current_value -> {current_value,state_s/state_w} end)
+#                 state=Map.merge(state,state_current_ratio)
+#                 #Process.sleep(1_000)
+#                 #IO.inspect "#{inspect state}"
+#                 # Pick up a random alive neighbour and send half of s and w value
+#                 neighbour=Enum.random(state[:list_of_neighbours])
+#                 #IO.puts "process_id #{inspect self()} neighbour #{inspect neighbour} s #{state[:s]/2} w #{state[:w]/2}"
+#                 if neighbour_is_alive(neighbour) do
+#                     GenServer.cast(neighbour,{:startpushsum,state[:s],state[:w]})
+#                 else
+#                     {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,List.delete(state[:list_of_neighbours],neighbour)} end)
+#                     state=Map.merge(state,state_list_neighbours) 
+#                     #Revert back the s and w value and set the :numrounds to @pushsumcount+1 so that the node gets killed in the self call
+#                     {_,state_s_new}=Map.get_and_update(state,:s, fn current_value -> {current_value,current_value*2-s} end)
+#                     state=Map.merge(state,state_s_new)
+#                     {_,state_w_new}=Map.get_and_update(state,:w, fn current_value -> {current_value,current_value*2-w} end)
+#                     state=Map.merge(state,state_w_new)
+#                     {_,state_numRounds_new}=Map.get_and_update(state,:numRounds, fn current_value -> {current_value,current_value+@pushsumcount+1} end)
+#                     state=Map.merge(state,state_numRounds_new)
+#                     {_,state_current_ratio}=Map.get_and_update(state,:currentratio, fn current_value -> {current_value,(state_s-s)/(state_w-w)} end)
+#                     state=Map.merge(state,state_current_ratio)
+#                     #Call itself again to get an alive neighbour for its current s and w value
+#                     GenServer.cast(self(),{:startpushsum,0,0})
+#                 end
+#              end
+#            end
+#         end
+#     end
+#      {:noreply,state}
+# end
 
 
     # Push Sum based algorithm End
 
-     def neighbour_is_alive(process_id) do
-        if(Process.alive?(process_id)) do
-            true
-        else 
-            false
-        end
-    end
+    #  def neighbour_is_alive(process_id) do
+    #     if(Process.alive?(process_id)) do
+    #         true
+    #     else 
+    #         false
+    #     end
+    # end
 
     def kill_actor(process_id,algorithm) do
          #IO.puts "Killing #{inspect process_id}"
