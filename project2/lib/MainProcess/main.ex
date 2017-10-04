@@ -63,7 +63,11 @@ use GenServer
                         kill_main_process(state[:time_milliseconds])
                     else
                           if(state[:topology]=="line") do
-                               GenServer.cast(Enum.random(new_list),{:startGossip,false})
+                               if(Enum.count(new_list)>0) do
+                                    GenServer.cast(Enum.random(new_list),{:startGossip,false})
+                               else
+                                    kill_main_process(state[:time_milliseconds])
+                               end
                           end
                           #IO.puts "#{inspect state[:count]}"
                     #Do nothing 
@@ -76,7 +80,11 @@ use GenServer
                     state=Map.merge(state,max_count_convergence)
 
                     if(state[:topology]=="line") do
-                               GenServer.cast(Enum.random(new_list),{:startGossip,false})
+                             if(Enum.count(new_list)>0) do
+                                    GenServer.cast(Enum.random(new_list),{:startGossip,false})
+                               else
+                                    kill_main_process(state[:time_milliseconds])
+                               end
                     end
 
                  end
