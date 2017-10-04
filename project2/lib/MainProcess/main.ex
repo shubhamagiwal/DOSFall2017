@@ -2,7 +2,7 @@ defmodule Project2.Main do
 use GenServer
 @maxconvergence 10
 
-    def start_main_process do
+    def start_main_process() do
         {:ok,_} = GenServer.start_link(__MODULE__,:ok,name: Main_process)
         #pid
     end 
@@ -12,16 +12,18 @@ use GenServer
         {:ok,%{}}
     end
 
-    def handle_cast({:update_main,list,topology,start_milli},state) do
+    def handle_cast({:update_main,list,topology,start_milli,convergence},state) do
         {_,state_list}=Map.get_and_update(state,:list, fn current_value -> {current_value,list} end)
         {_,state_list_topology}=Map.get_and_update(state,:topology, fn current_value -> {current_value,topology} end)
         {_,state_start_milli}=Map.get_and_update(state,:time_milliseconds, fn current_value -> {current_value,start_milli} end)
-        
+        {_,state_convergence}=Map.get_and_update(state,:convergence, fn current_value -> {current_value,convergence} end)
        
 
         state=Map.merge(state,state_list)
         state=Map.merge(state,state_list_topology)
         state=Map.merge(state,state_start_milli)
+        state=Map.merge(state,state_convergence)
+
 
          #List of Alive node to dead nodes
         {_,state_alive_nodes}=Map.get_and_update(state,:alive_nodes, fn current_value -> {current_value,Enum.count(state[:list])} end)
@@ -46,19 +48,24 @@ use GenServer
     end
 
     def handle_cast({:exit_process,process_id,is_alive_node},state) do
+            #IO.inspect process_id
             if(is_alive_node && state[:alive_nodes]>0) do
                
                 old_list=state[:list];
                 new_list=state[:list]--[process_id]
                 #IO.puts "old_list #{inspect old_list} new_list #{inspect new_list}"
-                IO.puts "Killing #{inspect process_id} -> Status of the node #{inspect is_alive_node} alive #{inspect state[:alive_nodes]} dead#{inspect state[:dead_nodes]} old_list_new_list_equal=#{inspect old_list==new_list}"
+                #IO.puts "Killing #{inspect process_id} -> Status of the node #{inspect is_alive_node} alive #{inspect state[:alive_nodes]} dead#{inspect state[:dead_nodes]} old_list_new_list_equal=#{inspect old_list==new_list}"
                 if(Enum.count(old_list)==Enum.count(new_list)) do
                     {_,max_count_convergence}=Map.get_and_update(state,:count, fn current_value -> {current_value,current_value+1} end)
                     state=Map.merge(state,max_count_convergence)
-
-                    if(state[:count]>100) do
-                         GenServer.cast(self(),{:kill_main})
+                    #IO.puts "old_list #{inspect old_list} new_list #{inspect new_list}"
+                    if(state[:count]>state[:convergence]) do
+                        kill_main_process(state[:time_milliseconds])
                     else
+                          if(state[:topology]=="line") do
+                               GenServer.cast(Enum.random(new_list),{:startGossip,false})
+                          end
+                          #IO.puts "#{inspect state[:count]}"
                     #Do nothing 
                     end
 
@@ -67,6 +74,11 @@ use GenServer
                     state=Map.merge(state,list_new)
                     {_,max_count_convergence}=Map.get_and_update(state,:count, fn current_value -> {current_value,0} end)
                     state=Map.merge(state,max_count_convergence)
+
+                    if(state[:topology]=="line") do
+                               GenServer.cast(Enum.random(new_list),{:startGossip,false})
+                    end
+
                  end
             end
              {:noreply,state}
@@ -111,17 +123,26 @@ use GenServer
             #     #{:noreply,state}
             # end
 
-
-
-    def handle_cast({:kill_main},state) do
+    def kill_main_process(time)do
+        #IO.puts "After Gen near kill"
+        #IO.puts "I am here"
         end_time_milli=:erlang.system_time(:millisecond)
-        start_time_milli=state[:time_milliseconds]
+        start_time_milli=time
         time=end_time_milli-start_time_milli
         IO.puts "Time the program ran for is #{time} milliseconds"
-
         Process.exit(self(),:normal)
-        {:noreply,state}
     end
+
+    # def handle_cast(:kill_main,state) do
+    #     IO.puts "I am here"
+    #     end_time_milli=:erlang.system_time(:millisecond)
+    #     start_time_milli=state[:time_milliseconds]
+    #     time=end_time_milli-start_time_milli
+    #     IO.puts "Time the program ran for is #{time} milliseconds"
+
+    #     Process.exit(self(),:normal)
+    #     {:noreply,state}
+    # end
 
     def handle_cast({:start_push_sum_alive_node},state) do
         #Process.sleep(1_0)

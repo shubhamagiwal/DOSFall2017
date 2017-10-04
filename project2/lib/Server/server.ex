@@ -25,7 +25,7 @@ use GenServer
         creating_topology_for_each_actor(0,topology,list,algorithm)
         #{_,start_mins,start_seconds}=:erlang.time()
         time_milli=:erlang.system_time(:millisecond)
-        GenServer.cast(Main_process,{:update_main,list,topology,time_milli})
+        GenServer.cast(Main_process,{:update_main,list,topology,time_milli,numNodes})
         #Main Process End
         IO.puts "....start protocol"
         #Start Gossip if the input is gossip
@@ -251,7 +251,7 @@ use GenServer
             end
             
               false ->
-                    IO.puts "Gossip on #{inspect self()} #{inspect state[:count]} find_neighbour #{find_neighbour_alive_node} #{state[:is_alive]}"
+                    #IO.puts "Gossip on #{inspect self()} #{inspect state[:count]} find_neighbour #{find_neighbour_alive_node} #{state[:is_alive]}"
                     # Increment the count by 1 for the given gossip node
                     # Increment the count is done
 
