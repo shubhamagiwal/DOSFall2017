@@ -77,10 +77,6 @@ use GenServer
 
          case topology do
 
-            "full" -> 
-                      l = get_neighbours(start_value,topology,list,0,[])
-                      l
-
             "2D" -> l = get_neighbours(start_value,topology,list,0,[])
                     l
 
@@ -96,15 +92,6 @@ use GenServer
     def get_neighbours(position,topology,list,start_value,l) do
 
         case topology do
-
-            "full" -> 
-            if(start_value<Enum.count(list)) do
-                 if(((start_value==position)==false)) do
-                    l=l++[Enum.at(list,start_value)]
-                end
-                start_value=start_value+1
-                l=get_neighbours(position,topology,list,start_value,l)
-             end
 
             "2D" -> 
                     n=round(:math.sqrt(Enum.count(list))) #Value of grid n*n grid
@@ -218,50 +205,81 @@ use GenServer
         {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,list_of_neighbours} end)
         {_,state_list_count}=Map.get_and_update(state,:count, fn current_value -> {current_value,0} end)
         {_,state_list_topology}=Map.get_and_update(state,:topology, fn current_value -> {current_value,topology} end)
+        #Check if the given node is alive or not
+        {_,state_is_alive}=Map.get_and_update(state,:is_alive, fn current_value -> {current_value,true} end)
+        
         state=Map.merge(state,state_list_neighbours)
         state=Map.merge(state,state_list_count)
         state=Map.merge(state,state_list_topology)
+        state=Map.merge(state,state_is_alive)
         #IO.puts "#{inspect self()} #{inspect state}"
         {:noreply,state}
     end
 
-    def handle_cast({:startGossip},state) do
-       # IO.puts "#{inspect self()} #{state[:count]}"
+  def handle_cast({:startGossip,find_neighbour_alive_node},state) do
+    IO.puts "Gossip on #{inspect self()} #{inspect state[:count]} find_neighbour #{find_neighbour_alive_node} #{state[:is_alive]}"
+    Process.sleep(1_000)
+    if(state[:is_alive]==true and state[:count]<@gossip) do
 
-        # Check if all the neigbours of this node is dead or not
-        if(state[:count]>=@gossip) do
-            #IO.puts " Reached gossip limit #{inspect self()}"
-            kill_actor(self(),to_string("gossip"))
-        else if(Enum.count(state[:list_of_neighbours])==0) do
-            {_,state_list_count}=Map.get_and_update(state,:count, fn current_value -> {current_value,current_value+@gossip} end)
-             state=Map.merge(state,state_list_count) 
-             GenServer.cast(self(),{:startGossip})
-        else
-            {_,state_list_count}=Map.get_and_update(state,:count, fn current_value -> {current_value,current_value+1} end)
-            state=Map.merge(state,state_list_count)
-            neighbour=Enum.random(state[:list_of_neighbours])
-            #IO.puts "process_id #{inspect self()} neighbour #{inspect neighbour}"
-            if neighbour_is_alive(neighbour) do
-                GenServer.cast(neighbour,{:startGossip})
-                if(state[:count]<@gossip) do
-                     GenServer.cast(self(),{:startGossip})
+        case find_neighbour_alive_node  do
+            true -> 
+            # This is used to  find the alive neighbour and do gossip on it
+            #IO.inspect "List of Neighbours #{inspect state[:list_of_neighbours]}"
+            if(Enum.count(state[:list_of_neighbours])>0) do
+                list_of_neighbours=state[:list_of_neighbours]
+                random_neighbour=Enum.random(list_of_neighbours)
+
+                if(neighbour_is_alive(random_neighbour)) do
+                    GenServer.cast(random_neighbour,{:startGossip,false})
+                    GenServer.cast(self(),{:startGossip,true})
+                    {:noreply,state}
+                else
+                    IO.puts "Random neighbour #{inspect random_neighbour} for process #{inspect self()} list #{inspect  state[:list_of_neighbours]}"
+                    {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,List.delete(state[:list_of_neighbours],random_neighbour)} end)
+                    state=Map.merge(state,state_list_neighbours) 
+                    GenServer.cast(self(),{:startGossip,true})
+                    {:noreply,state}
                 end
-            else
-                #Remove the killed neighbour
-               {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,List.delete(state[:list_of_neighbours],neighbour)} end)
-               state=Map.merge(state,state_list_neighbours) 
-                #End
-                if(state[:count]<@gossip) do
-                     GenServer.cast(self(),{:startGossip})
-                end
+            
+             else
+                # The Nodes needs to be terminated and it must be terminated
+                IO.puts "Given #{inspect self()} is killed"
+                {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,[]} end)
+                state=Map.merge(state,state_list_neighbours) 
+                {_,state_is_alive}=Map.get_and_update(state,:is_alive, fn current_value -> {current_value,false} end)
+                state=Map.merge(state,state_is_alive) 
+                GenServer.cast(Main_process,{:exit_process,self(),"true"}) 
+                {:noreply,state}
             end
-             {:noreply,state}
+            
+              false ->
+                    # Increment the count by 1 for the given gossip node
+                    # Increment the count is done
+
+                    if(state[:count]>= @gossip) do
+                        #Terminate the node
+                        IO.puts "Given #{inspect self()} is killed"
+                        {_,state_is_alive}=Map.get_and_update(state,:is_alive, fn current_value -> {current_value,false} end)
+                        state=Map.merge(state,state_is_alive) 
+                        {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,[]} end)
+                        state=Map.merge(state,state_list_neighbours) 
+                        GenServer.cast(Main_process,{:exit_process,self(),"true"})
+                        {:noreply,state}
+                    else
+                        {_,state_list_count}=Map.get_and_update(state,:count, fn current_value -> {current_value,current_value+1} end)
+                        state=Map.merge(state,state_list_count)
+                        GenServer.cast(self(),{:startGossip,true})
+                        {:noreply,state}
+                    end
         end
-     end
-        {:noreply,state}
+    else
+         GenServer.cast(Main_process,{:exit_process,self(),"false"})
+         {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,[]} end)
+         state=Map.merge(state,state_list_neighbours) 
+         {:noreply,state}
     end
- 
-   
+
+  end
 
     # Push Sum based algorithm Update
 
@@ -412,49 +430,5 @@ end
         end
        
     end
-    # def kill_actor(process_id) do
-    #     IO.puts "Killing #{inspect process_id}"
-    #     list=Agent.get(Agent_active_nodes,fn state -> state end) --[process_id]
-    #     Agent.update(Agent_active_nodes, fn state -> list  end) 
-    #     # Check if all the nodes in the agent are dead 
-    #     IO.inspect Enum.all?(Agent.get(Agent_active_nodes,fn state -> state end),fn(x) -> Process.alive?(x)==false end)
-    #     if(Enum.all?(Agent.get(Agent_active_nodes,fn state -> state end),fn(x) -> Process.alive?(x)==false end)==true) do
-    #         IO.inspect "All Nodes are dead"
-    #         list=[];
-    #         Agent.update(Agent_active_nodes,fn state ->list end)
-    #         Process.exit(process_id,:normal)
-    #     else
-    #         aliveList=Enum.filter(Agent.get(Agent_active_nodes,fn state -> state end), fn(x) -> Process.alive?(x)==true end)--[process_id]
-    #         IO.puts "process_id #{inspect process_id} alivelist #{inspect aliveList}" 
-    #         random_actor=Enum.random(aliveList);
-    #         IO.inspect "random #{inspect random_actor}"
-    #         GenServer.cast(random_actor,{:startGossip})
-    #         Process.exit(process_id,:normal)
-    #         # if(Enum.count(aliveList)==1) do
-    #         #       Process.exit(process_id,:normal)  
-    #         #       kill_actor(Enum.at(aliveList,0))  
-    #         # else
-    #         #      Process.exit(process_id,:normal)
-    #         # end
-    #     end
-        
-    # end
-
-    # def get_random_node(process_id) do    
-    #      #IO.puts "I am here" 
-    #      list=Agent.get(Agent_active_nodes,fn state -> state end)--[process_id]
-    #      if(Enum.count(list)==0) do
-    #          kill_actor(process_id)
-    #      else 
-    #         #Agent.update(Agent_active_nodes, fn state -> list end)
-    #         random_actor=Enum.random(list);
-    #         if(Process.alive?(random_actor))do
-    #              GenServer.cast(random_actor,{:startGossip})  
-    #              kill_actor(process_id)  
-    #         else
-    #             kill_actor(process_id) 
-    #             get_random_node(random_actor)
-    #         end
-    #      end
-    # end     
+    
 end
