@@ -12,6 +12,12 @@ use GenServer
         numNodes=String.to_integer(to_string(Enum.at(elem(server_tuple,1),0)));
         topology=to_string(Enum.at(elem(server_tuple,1),1));
         algorithm=to_string(Enum.at(elem(server_tuple,1),2));
+
+        if(Enum.count(elem(server_tuple,1))==4) do
+            percent_to_kill=String.to_integer(to_string(Enum.at(elem(server_tuple,1),3)))/1;
+        else    
+            percent_to_kill=0.0
+        end
         
         if(topology=="2D" or topology=="imp2D") do
             numNodes=round(:math.pow(round(:math.sqrt(numNodes)),2))
@@ -25,18 +31,16 @@ use GenServer
         creating_topology_for_each_actor(0,topology,list,algorithm)
         #{_,start_mins,start_seconds}=:erlang.time()
         time_milli=:erlang.system_time(:millisecond)
-        GenServer.cast(Main_process,{:update_main,list,topology,time_milli,numNodes})
+        GenServer.cast(Main_process,{:update_main,list,topology,time_milli,numNodes,percent_to_kill})
+        GenServer.cast(Main_process,{:kill_percent_nodes});
         #Main Process End
         IO.puts "....start protocol"
         #Start Gossip if the input is gossip
-        if(algorithm=="gossip") do
-            GenServer.cast(Main_process,{:random_node,algorithm}) 
-        else if(algorithm=="push-sum") do
+         if(algorithm=="push-sum") do
               #GenServer.cast(Main_process,{:random_node}) 
               #IO.puts "I am up"
               GenServer.cast(Main_process,{:random_node,algorithm}) 
               #IO.puts "I am down"
-             end
         end
     end
 
@@ -202,100 +206,12 @@ use GenServer
         {:ok,%{}}
     end
 
-    def handle_cast({:updategossip,topology,list_of_neighbours},state) do
-        #IO.inspect "List of neighbours: #{inspect list_of_neighbours}"
-        {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,list_of_neighbours} end)
-        {_,state_list_count}=Map.get_and_update(state,:count, fn current_value -> {current_value,0} end)
-        {_,state_list_topology}=Map.get_and_update(state,:topology, fn current_value -> {current_value,topology} end)
-        #Check if the given node is alive or not
-        {_,state_is_alive}=Map.get_and_update(state,:is_alive, fn current_value -> {current_value,true} end)
-        
-        state=Map.merge(state,state_list_neighbours)
-        state=Map.merge(state,state_list_count)
-        state=Map.merge(state,state_list_topology)
-        state=Map.merge(state,state_is_alive)
-        #IO.puts "#{inspect self()} #{inspect state}"
-        {:noreply,state}
-    end
-
     def handle_cast({:removeNeighbour,neigbhbour},state) do
         new_list=state[:list_of_neighbours]--[neigbhbour]
         {_,state_is_new_list_of_neighbouts}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,new_list} end)
         state=Map.merge(state,state_is_new_list_of_neighbouts)
         {:noreply,state}
     end
-
-  def handle_cast({:startGossip,find_neighbour_alive_node},state) do
-    #Process.sleep(1_500)
-    if(state[:count]<@gossip) do
-
-        case find_neighbour_alive_node  do
-            true -> # This is used to  find the alive neighbour and do gossip on it
-            if(Enum.count(state[:list_of_neighbours])>0) do
-                list_of_neighbours=state[:list_of_neighbours]
-                random_neighbour=Enum.random(list_of_neighbours)
-                GenServer.cast(random_neighbour,{:startGossip,false}) # Start gossip on the given node
-                if(state[:count]<@gossip) do
-                    GenServer.cast(self(),{:startGossip,true}) # Look for neigbhbours
-                else if(state[:count]>=@gossip) do
-                     GenServer.cast(Main_process,{:exit_process,self(),state[:state_is_alive]}) 
-                    end
-                end
-                
-             else
-                {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,[]} end)
-                state=Map.merge(state,state_list_neighbours) 
-                {_,state_is_alive}=Map.get_and_update(state,:is_alive, fn current_value -> {current_value,false} end)
-                state=Map.merge(state,state_is_alive) 
-                {_,state_is_count}=Map.get_and_update(state,:count, fn current_value -> {current_value,@gossip} end)
-                state=Map.merge(state,state_is_count) 
-                GenServer.cast(Main_process,{:exit_process,self(),true}) 
-            end
-            
-              false ->
-                    #IO.puts "Gossip on #{inspect self()} #{inspect state[:count]} find_neighbour #{find_neighbour_alive_node} #{state[:is_alive]}"
-                    # Increment the count by 1 for the given gossip node
-                    # Increment the count is done
-
-                    if(state[:count]>= @gossip) do
-                        #Terminate the node
-                        #IO.puts "Given #{inspect self()} is killed"
-                        {_,state_is_alive}=Map.get_and_update(state,:is_alive, fn current_value -> {current_value,false} end)
-                        state=Map.merge(state,state_is_alive) 
-                        
-                        # Send an update request to all the neighbours to remove self() from the list
-                         list_of_neighbours=state[:list_of_neighbours]
-                         if(Enum.count(list_of_neighbours)>0) do
-                            Enum.each(list_of_neighbours, fn(x) ->GenServer.cast(x,{:removeNeighbour,self()})end)
-                         end
-                         # Update completed
-                        {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,[]} end)
-                        state=Map.merge(state,state_list_neighbours) 
-                        GenServer.cast(Main_process,{:exit_process,self(),true})
-                    else
-                        {_,state_list_count}=Map.get_and_update(state,:count, fn current_value -> {current_value,current_value+1} end)
-                        state=Map.merge(state,state_list_count)
-                        #Find my neighbours to gossip
-                        GenServer.cast(self(),{:startGossip,true})
-                    end
-        end
-    else if(state[:count]>=@gossip) do
-         {_,state_is_alive}=Map.get_and_update(state,:is_alive, fn current_value -> {current_value,false} end)
-         state=Map.merge(state,state_is_alive)  
-         # Send an update request to all the neighbours to remove self() from the list
-         list_of_neighbours=state[:list_of_neighbours]
-            if(Enum.count(list_of_neighbours)>0) do
-                Enum.each(list_of_neighbours, fn(x) ->GenServer.cast(x,{:removeNeighbour,self()})end)
-            end
-        # Update completed
-        {_,state_list_neighbours}=Map.get_and_update(state,:list_of_neighbours, fn current_value -> {current_value,[]} end)
-        state=Map.merge(state,state_list_neighbours) 
-        GenServer.cast(Main_process,{:exit_process,self(),true})
-         #{:noreply,state}
-         end
-    end
-    {:noreply,state}
-end
 
    # Push Sum Algorithm 
 

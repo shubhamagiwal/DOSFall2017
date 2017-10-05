@@ -12,25 +12,53 @@ use GenServer
         {:ok,%{}}
     end
 
-    def handle_cast({:update_main,list,topology,start_milli,convergence},state) do
+    def handle_cast({:kill_percent_nodes},state) do
+        num_nodes=state[:convergence]
+
+        if(state[:percent_kill]>10.0) do
+            to_kill_nodes=round(num_nodes*state[:percent_kill]/100)
+            start_kill_timer=:erlang.system_time(:millisecond)
+            list=kill_nodes(to_kill_nodes,state[:list])
+            end_kill_timer=:erlang.system_time(:millisecond)
+            total_time_for_killing=end_kill_timer-start_kill_timer
+            {_,state_list}=Map.get_and_update(state,:list, fn current_value -> {current_value,list} end)
+            state=Map.merge(state,state_list)
+            {_,state_list}=Map.get_and_update(state,:time_milliseconds, fn current_value -> {current_value,current_value+total_time_for_killing} end)
+            state=Map.merge(state,state_list)
+        else
+            #DO Nothing
+        end
+
+        if(state[:percent_kill]==100.0) do
+            kill_main_process(state[:time_milliseconds])
+        end
+
+        {:noreply,state}
+    end
+
+    def kill_nodes(to_kill_nodes,list) do
+        if(to_kill_nodes>0) do
+              random_node_kill=Enum.random(list)
+              list=list--[random_node_kill]
+              Process.exit(random_node_kill,:normal)
+              list=kill_nodes(to_kill_nodes-1,list)
+        end
+        list
+    end
+
+    def handle_cast({:update_main,list,topology,start_milli,convergence,percent_to_kill},state) do
         {_,state_list}=Map.get_and_update(state,:list, fn current_value -> {current_value,list} end)
         {_,state_list_topology}=Map.get_and_update(state,:topology, fn current_value -> {current_value,topology} end)
         {_,state_start_milli}=Map.get_and_update(state,:time_milliseconds, fn current_value -> {current_value,start_milli} end)
         {_,state_convergence}=Map.get_and_update(state,:convergence, fn current_value -> {current_value,convergence} end)
-       
+        {_,state_percent_to_kill}=Map.get_and_update(state,:percent_kill, fn current_value -> {current_value,percent_to_kill} end)
+
 
         state=Map.merge(state,state_list)
         state=Map.merge(state,state_list_topology)
         state=Map.merge(state,state_start_milli)
         state=Map.merge(state,state_convergence)
-
-
-         #List of Alive node to dead nodes
-        {_,state_alive_nodes}=Map.get_and_update(state,:alive_nodes, fn current_value -> {current_value,Enum.count(state[:list])} end)
-        state=Map.merge(state,state_alive_nodes)
-        {_,state_dead_nodes}=Map.get_and_update(state,:dead_nodes, fn current_value -> {current_value,0} end)
-        state=Map.merge(state,state_dead_nodes)
-        #Needed for max convergence attempts
+        state=Map.merge(state,state_percent_to_kill)
         {_,max_count_convergence}=Map.get_and_update(state,:count, fn current_value -> {current_value,0} end)
         state=Map.merge(state,max_count_convergence)
 
@@ -46,46 +74,6 @@ use GenServer
         end   
          {:noreply,state}
     end
-
-    def handle_cast({:exit_process,process_id,is_alive_node},state) do
-            #IO.inspect process_id
-            if(is_alive_node && state[:alive_nodes]>0) do
-               
-                old_list=state[:list];
-                new_list=state[:list]--[process_id]
-                #IO.puts "old_list #{inspect old_list} new_list #{inspect new_list}"
-                #IO.puts "Killing #{inspect process_id} -> Status of the node #{inspect is_alive_node} alive #{inspect state[:alive_nodes]} dead#{inspect state[:dead_nodes]} old_list_new_list_equal=#{inspect old_list==new_list}"
-                if(Enum.count(old_list)==Enum.count(new_list)) do
-                    {_,max_count_convergence}=Map.get_and_update(state,:count, fn current_value -> {current_value,current_value+1} end)
-                    state=Map.merge(state,max_count_convergence)
-                    if(state[:count]>state[:convergence]) do
-                        kill_main_process(state[:time_milliseconds])
-                    else
-                               if(Enum.count(new_list)>0) do
-                                    GenServer.cast(Enum.random(new_list),{:startGossip,false})
-                               else
-                                    kill_main_process(state[:time_milliseconds])
-                               end
-                          
-                          #IO.puts "#{inspect state[:count]}"
-                    end
-
-                 else 
-                    {_,list_new}=Map.get_and_update(state,:list, fn current_value -> {current_value,new_list} end)
-                    state=Map.merge(state,list_new)
-                    {_,max_count_convergence}=Map.get_and_update(state,:count, fn current_value -> {current_value,0} end)
-                    state=Map.merge(state,max_count_convergence)
-
-                             if(Enum.count(new_list)>0) do
-                                    GenServer.cast(Enum.random(new_list),{:startGossip,false})
-                               else
-                                    kill_main_process(state[:time_milliseconds])
-                            end
-                end
-
-            end
-             {:noreply,state}
-        end
 
     def kill_main_process(time)do
         #IO.puts "After Gen near kill"
@@ -121,10 +109,6 @@ use GenServer
             {_,state_list}=Map.get_and_update(state,:list, fn current_value -> {current_value,List.delete(state[:list],process_id)} end)
             state=Map.merge(state,state_list) 
             {:noreply,state}
-    end
-
-    def handle_call({:count_active_nodes},_from,state) do
-        {:reply,Enum.count(state[:list]),state}
     end
 
 end
