@@ -58,19 +58,16 @@ use GenServer
                 if(Enum.count(old_list)==Enum.count(new_list)) do
                     {_,max_count_convergence}=Map.get_and_update(state,:count, fn current_value -> {current_value,current_value+1} end)
                     state=Map.merge(state,max_count_convergence)
-                    #IO.puts "old_list #{inspect old_list} new_list #{inspect new_list}"
                     if(state[:count]>state[:convergence]) do
                         kill_main_process(state[:time_milliseconds])
                     else
-                          if(state[:topology]=="line") do
                                if(Enum.count(new_list)>0) do
                                     GenServer.cast(Enum.random(new_list),{:startGossip,false})
                                else
                                     kill_main_process(state[:time_milliseconds])
                                end
-                          end
+                          
                           #IO.puts "#{inspect state[:count]}"
-                    #Do nothing 
                     end
 
                  else 
@@ -79,15 +76,13 @@ use GenServer
                     {_,max_count_convergence}=Map.get_and_update(state,:count, fn current_value -> {current_value,0} end)
                     state=Map.merge(state,max_count_convergence)
 
-                    if(state[:topology]=="line") do
                              if(Enum.count(new_list)>0) do
                                     GenServer.cast(Enum.random(new_list),{:startGossip,false})
                                else
                                     kill_main_process(state[:time_milliseconds])
-                               end
-                    end
+                            end
+                end
 
-                 end
             end
              {:noreply,state}
         end
