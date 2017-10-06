@@ -33,6 +33,11 @@ use GenServer
         #Needed for max convergence attempts
         {_,max_count_convergence}=Map.get_and_update(state,:count, fn current_value -> {current_value,0} end)
         state=Map.merge(state,max_count_convergence)
+        #Number of nodes in the present list
+         {_,max_count_list}=Map.get_and_update(state,:count_list, fn current_value -> {current_value,Enum.count(list)} end)
+        state=Map.merge(state,max_count_list)
+        IO.puts "AliveNodes: #{inspect state[:alive_nodes]} Count #{inspect Enum.count(state[:list])}"
+                IO.puts " list #{inspect (state[:list])}"
 
         {:noreply,state}
     end
@@ -47,9 +52,24 @@ use GenServer
          {:noreply,state}
     end
 
+    def handle_info({:get_ratio},state)do
+        if((state[:dead_nodes]/state[:count_list])<0.5)do
+            kill_main_process_no_network_converge() 
+        else
+            kill_main_process(state[:time_milliseconds]) 
+        end   
+         {:noreply, state}
+    end
+
+    def kill_main_process_no_network_converge()do
+        IO.puts "The given network will not converge." 
+        Process.exit(self(),:normal)
+    end
+
     def handle_cast({:exit_process,process_id,is_alive_node},state) do
-            #IO.inspect process_id
-            if(is_alive_node && state[:alive_nodes]>0) do
+            IO.puts "#{inspect process_id} killing  list of neighbours left#{inspect state[:list]}"
+            Process.send_after(self(), {:get_ratio}, 1_0000)
+            if(is_alive_node) do
                
                 old_list=state[:list];
                 new_list=state[:list]--[process_id]
@@ -59,10 +79,10 @@ use GenServer
                     {_,max_count_convergence}=Map.get_and_update(state,:count, fn current_value -> {current_value,current_value+1} end)
                     state=Map.merge(state,max_count_convergence)
                     if(state[:count]>state[:convergence]) do
-                        kill_main_process(state[:time_milliseconds])
+                        #kill_main_process(state[:time_milliseconds])
                     else
                                if(Enum.count(new_list)>0) do
-                                    GenServer.cast(Enum.random(new_list),{:startGossip,false})
+                                    #GenServer.cast(Enum.random(new_list),{:startGossip,false})
                                else
                                     kill_main_process(state[:time_milliseconds])
                                end
@@ -75,14 +95,23 @@ use GenServer
                     state=Map.merge(state,list_new)
                     {_,max_count_convergence}=Map.get_and_update(state,:count, fn current_value -> {current_value,0} end)
                     state=Map.merge(state,max_count_convergence)
+                    {_,state_alive_nodes}=Map.get_and_update(state,:alive_nodes, fn current_value -> {current_value,current_value-1} end)
+                    state=Map.merge(state,state_alive_nodes)
+                    {_,state_dead_nodes}=Map.get_and_update(state,:dead_nodes, fn current_value -> {current_value,current_value+1} end)
+                    state=Map.merge(state,state_dead_nodes)
+                    IO.puts "Ration #{inspect (state[:dead_nodes]/state[:count_list])}"
+                    IO.puts "AliveNodes: #{inspect state[:alive_nodes]}"
 
-                             if(Enum.count(new_list)>0) do
-                                    GenServer.cast(Enum.random(new_list),{:startGossip,false})
-                               else
+                               if((state[:dead_nodes]/state[:count_list])>=0.5)do
+                                    kill_main_process(state[:time_milliseconds])     
+                               else if(Enum.count(new_list)>0) do
+                                    #GenServer.cast(Enum.random(new_list),{:startGossip,false})
+                               else if(Enum.count(new_list)==0) do
                                     kill_main_process(state[:time_milliseconds])
+                                   end
+                               end
                             end
-                end
-
+                    end    
             end
              {:noreply,state}
         end
