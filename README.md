@@ -11,4 +11,12 @@ This is a distributed gossip simulator made on Elixir.
     > type_of_topology: line || 2D || imp2D || full NOTE: Please be carefull about the letter casing<br>
     > type_of_algorithm: gossip | push-sum <br>
     
-4.
+#### Instructions for bonus part:
+1. Follow steps 1 & 2 from above.
+2. After successfull compilation please follow the commands stated below:<br>
+    `./project2	  number_of_nodes		type_of_topology	type_of_algorithm percentage_nodes_to_kill`<br>
+    > number_of_nodes: integer values (0-2000)<br>
+    > type_of_topology: line || 2D || imp2D || full NOTE: Please be carefull about the letter casing<br>
+    > type_of_algorithm: gossip | push-sum <br>
+    > percentage_nodes_to_kill: float value (0-100)
+
