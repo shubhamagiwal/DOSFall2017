@@ -20,17 +20,20 @@ This is a distributed gossip simulator made on Elixir.
     > type_of_algorithm: gossip | push-sum <br>
     > percentage_nodes_to_kill: float value (0-100)
     
-#### Sample input output
+#### Sample input output<br>
+###### gossip<br>
 Input: `./project2 1000 2D gossip`<br>
 Output: <br>
 `....build topology`<br> `....start protocol` <br> `Time the program ran for is 9034 milliseconds `
-
+###### push-sum<br>
 Input: `./project2 1000 2D push-sum`<br>
 Output: <br>
 `....build topology`<br> `....start protocol` <br> `Time the program ran for is 259 milliseconds `
-
+###### bonus<br>
 Input: `./project2 1000 2D push-sum 50`<br>
 Output: <br>
 `....build topology`<br> `....start protocol` <br> `Time the program ran for is 65 milliseconds `
+
+##### For other references see report.pdf and bonus_report.pdf
 
 
