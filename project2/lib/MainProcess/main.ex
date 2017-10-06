@@ -1,6 +1,6 @@
 defmodule Project2.Main do
 use GenServer
-@maxconvergence 10
+@network_convergence_percent 0.5
 
     def start_main_process() do
         {:ok,_} = GenServer.start_link(__MODULE__,:ok,name: Main_process)
@@ -36,8 +36,8 @@ use GenServer
         #Number of nodes in the present list
          {_,max_count_list}=Map.get_and_update(state,:count_list, fn current_value -> {current_value,Enum.count(list)} end)
         state=Map.merge(state,max_count_list)
-        IO.puts "AliveNodes: #{inspect state[:alive_nodes]} Count #{inspect Enum.count(state[:list])}"
-                IO.puts " list #{inspect (state[:list])}"
+        #IO.puts "AliveNodes: #{inspect state[:alive_nodes]} Count #{inspect Enum.count(state[:list])}"
+         #       IO.puts " list #{inspect (state[:list])}"
 
         {:noreply,state}
     end
@@ -67,7 +67,7 @@ use GenServer
     end
 
     def handle_cast({:exit_process,process_id,is_alive_node},state) do
-            IO.puts "#{inspect process_id} killing  list of neighbours left#{inspect state[:list]}"
+            #IO.puts "#{inspect process_id} killing  list of neighbours left#{inspect state[:list]}"
             Process.send_after(self(), {:get_ratio}, 1_0000)
             if(is_alive_node) do
                
@@ -99,10 +99,10 @@ use GenServer
                     state=Map.merge(state,state_alive_nodes)
                     {_,state_dead_nodes}=Map.get_and_update(state,:dead_nodes, fn current_value -> {current_value,current_value+1} end)
                     state=Map.merge(state,state_dead_nodes)
-                    IO.puts "Ration #{inspect (state[:dead_nodes]/state[:count_list])}"
-                    IO.puts "AliveNodes: #{inspect state[:alive_nodes]}"
+                    #IO.puts "Ration #{inspect (state[:dead_nodes]/state[:count_list])}"
+                    #IO.puts "process_id #{inspect process_id}AliveNodes: #{inspect state[:alive_nodes]}"
 
-                               if((state[:dead_nodes]/state[:count_list])>=0.5)do
+                               if((state[:dead_nodes]/state[:count_list])>=@network_convergence_percent)do
                                     kill_main_process(state[:time_milliseconds])     
                                else if(Enum.count(new_list)>0) do
                                     #GenServer.cast(Enum.random(new_list),{:startGossip,false})

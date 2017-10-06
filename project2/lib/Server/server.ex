@@ -47,7 +47,7 @@ use GenServer
                 l=spawn_processes(numNodes,start_value,l)
              end
              l
-             #IO.puts "#{inspect Enum.count(l)}"
+             #IO.puts "#{inspect Enum.count(l)} #{numNodes}"
     end
 
     def creating_topology_for_each_actor(start_value,topology,list,algorithm) do
