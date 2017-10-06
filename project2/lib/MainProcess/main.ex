@@ -15,7 +15,7 @@ use GenServer
     def handle_cast({:kill_percent_nodes},state) do
         num_nodes=state[:convergence]
 
-        if(state[:percent_kill]>10.0) do
+        if(state[:percent_kill]>10.0 and state[:percent_kill]<=100.0 ) do
             to_kill_nodes=round(num_nodes*state[:percent_kill]/100)
             start_kill_timer=:erlang.system_time(:millisecond)
             list=kill_nodes(to_kill_nodes,state[:list])
