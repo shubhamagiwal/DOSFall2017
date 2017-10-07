@@ -1,6 +1,6 @@
 defmodule Project2.Main do
 use GenServer
-@network_convergence_percent 0.9
+@network_convergence_percent 0.7
 
     def start_main_process() do
         {:ok,_} = GenServer.start_link(__MODULE__,:ok,name: Main_process)
@@ -130,7 +130,7 @@ use GenServer
     end
 
     def handle_info({:get_ratio},state)do
-        if((state[:dead_nodes]/state[:count_list])<0.5)do
+        if((state[:dead_nodes]/state[:count_list])<@network_convergence_percent)do
             kill_main_process_no_network_converge() 
         else
             kill_main_process(state[:time_milliseconds]) 
@@ -144,7 +144,7 @@ use GenServer
     end
 
     def handle_cast({:exit_process,process_id,is_alive_node},state) do
-            IO.puts "#{inspect process_id} killing  list of neighbours left#{inspect state[:list]} count #{ inspect state[:dead_nodes]}"
+            #IO.puts "#{inspect process_id} killing  list of neighbours left#{inspect state[:list]} count #{ inspect state[:dead_nodes]}"
             Process.send_after(self(), {:get_ratio}, 1_0000)
             if(is_alive_node) do
                
@@ -161,6 +161,8 @@ use GenServer
                    new_list=new_list--[kill_random_neighbour]
                    {_,update_number_nodes_to_kill}=Map.get_and_update(state,:number_nodes_to_kill, fn current_value -> {current_value,current_value-1} end)
                     state=Map.merge(state,update_number_nodes_to_kill)
+                    {_,state_dead_nodes}=Map.get_and_update(state,:dead_nodes, fn current_value -> {current_value,current_value+1} end)
+                   state=Map.merge(state,state_dead_nodes)
                 end
                 #IO.puts "old_list #{inspect old_list} new_list #{inspect new_list}"
                 #IO.puts "Killing #{inspect process_id} -> Status of the node #{inspect is_alive_node} alive #{inspect state[:alive_nodes]} dead#{inspect state[:dead_nodes]} old_list_new_list_equal=#{inspect old_list==new_list}"
@@ -244,14 +246,14 @@ use GenServer
                    state=Map.merge(state,update_number_nodes_to_kill)
                    {_,state_list}=Map.get_and_update(state,:list, fn current_value -> {current_value,List.delete(state[:list],kill_random_neighbour)} end)
                    state=Map.merge(state,state_list) 
-                   {_,state_dead_nodes}=Map.get_and_update(state,:dead_nodes, fn current_value -> {current_value,current_value-2} end)
+                   {_,state_dead_nodes}=Map.get_and_update(state,:dead_nodes, fn current_value -> {current_value,current_value+2} end)
                    state=Map.merge(state,state_dead_nodes)
                     if(Enum.count(state[:list])<=0) do
                         kill_main_process(state[:time_milliseconds])
                     end
             else
-                Process.send_after(self(), {:get_ratio}, 1_0000)
-                IO.puts "#{inspect process_id} #{ inspect state[:list]}"
+                #Process.send_after(self(), {:get_ratio}, 1_0000)
+                #IO.puts "#{inspect process_id} #{ inspect state[:list]}"
                 {_,state_dead_nodes}=Map.get_and_update(state,:dead_nodes, fn current_value -> {current_value,current_value+1} end)
                 state=Map.merge(state,state_dead_nodes)
                 {_,state_list}=Map.get_and_update(state,:list, fn current_value -> {current_value,List.delete(state[:list],process_id)} end)

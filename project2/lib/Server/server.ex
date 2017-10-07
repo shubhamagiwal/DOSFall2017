@@ -244,10 +244,12 @@ use GenServer
         {:noreply,state}
     end
 
+    
   def handle_cast({:startGossip,find_neighbour_alive_node},state) do
     #Process.sleep(1_500)
+    #Process.send_after(self(), {:castgossip}, 1_000)
     if(state[:count]<@gossip) do
-
+        
         case find_neighbour_alive_node  do
             true -> # This is used to  find the alive neighbour and do gossip on it
             if(Enum.count(state[:list_of_neighbours])>0) do
