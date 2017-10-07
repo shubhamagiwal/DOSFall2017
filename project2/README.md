@@ -1,6 +1,14 @@
 # DOSFall2017
 #### Project 2 Gossip Simulator
 This is a distributed gossip simulator made on Elixir.
+###### Team Members
+Shubham Agiwal UFID: 20562669<br>
+Karan Sharma   UFID: 00174451<br>
+###### What is working?
+We have made two different implementaions for gossip algorithm and one for push-sum as mentioned in the report. Line, full, 2d and imp2d topologies are working for all the implementations.
+###### Largest Network of Nodes
+> The largest network of nodes on which we tested all our implementations is 10,000.
+
 
 #### Instructions for running the program:
 1. cd into project2 directory. Use command `cd DOSFall2017/project2` and hit return.
