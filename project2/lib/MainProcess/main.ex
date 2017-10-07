@@ -52,7 +52,7 @@ use GenServer
     def handle_cast({:killing_process},state) do
         #IO.puts "#{inspect state[:algorithm]} #{inspect state[:killing_mechanism]}"
         if(state[:killing_mechanism]=="begin_kill" and state[:algorithm]=="push-sum") do
-            IO.puts " iam in before fill"
+            #IO.puts " iam in before fill"
             to_kill_nodes=round((Enum.count(state[:list])*state[:percentage_node_kill])/100)
             start_kill_timer=:erlang.system_time(:millisecond)
             updated_list=kill_nodes_push_sum(to_kill_nodes,state[:list])
@@ -66,7 +66,7 @@ use GenServer
                 kill_main_process(:erlang.system_time(:millisecond))
             end
         else if(state[:killing_mechanism]=="begin_kill" and state[:algorithm]=="gossip") do
-                    IO.puts " iam in before fill"
+                  #  IO.puts " iam in before fill"
                  to_kill_nodes=round((Enum.count(state[:list])*state[:percentage_node_kill])/100)
                  start_kill_timer=:erlang.system_time(:millisecond)
                  updated_list=kill_nodes_gossip(to_kill_nodes,state[:list])
@@ -133,7 +133,7 @@ use GenServer
                     state=Map.merge(state,update_number_nodes_to_kill)
                 end
 
-                #IO.puts "old_list #{inspect old_list} new_list #{inspect new_list}"
+                #IO.puts "Killing #{inspect process_id} new_list #{inspect new_list}"
                 #IO.puts "Killing #{inspect process_id} -> Status of the node #{inspect is_alive_node} alive #{inspect state[:alive_nodes]} dead#{inspect state[:dead_nodes]} old_list_new_list_equal=#{inspect old_list==new_list}"
                 if(Enum.count(old_list)==Enum.count(new_list)) do
                     {_,max_count_convergence}=Map.get_and_update(state,:count, fn current_value -> {current_value,current_value+1} end)
@@ -155,6 +155,8 @@ use GenServer
                     state=Map.merge(state,list_new)
                     {_,max_count_convergence}=Map.get_and_update(state,:count, fn current_value -> {current_value,0} end)
                     state=Map.merge(state,max_count_convergence)
+                    #IO.puts "Killing #{inspect process_id} new_list #{inspect new_list}"
+
 
                              if(Enum.count(new_list)>0) do
                                     GenServer.cast(Enum.random(new_list),{:startGossip,false})
