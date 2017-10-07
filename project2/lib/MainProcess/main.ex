@@ -213,7 +213,7 @@ use GenServer
                    state=Map.merge(state,state_list) 
                 end
 
-                 #IO.puts "List #{inspect state[:list]}"
+                 #IO.puts "List #{inspect state[:list]} count #{inspect state[:number_nodes_to_kill]}"
 
             if(Enum.count(state[:list])<=0) do
                 kill_main_process(state[:time_milliseconds])
