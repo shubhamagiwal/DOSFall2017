@@ -17,6 +17,15 @@ use GenServer
             numNodes=round(:math.pow(round(:math.sqrt(numNodes)),2))
         end
 
+        if(Enum.count(elem(server_tuple,1))>3) do
+            killing_mechanism=Enum.at(elem(server_tuple,1),3)
+            percentage_nodes_killed=String.to_integer(to_string(Enum.at(elem(server_tuple,1),4)))
+            IO.puts "#{percentage_nodes_killed}"
+        else
+             killing_mechanism="begin_kill"
+             percentage_nodes_killed=0.0
+        end
+
         list=spawn_processes(numNodes,1,[])
         #Main Process Creation
         Project2.Main.start_main_process();
@@ -25,17 +34,15 @@ use GenServer
         creating_topology_for_each_actor(0,topology,list,algorithm)
         #{_,start_mins,start_seconds}=:erlang.time()
         time_milli=:erlang.system_time(:millisecond)
-        GenServer.cast(Main_process,{:update_main,list,topology,time_milli,numNodes})
+        GenServer.cast(Main_process,{:update_main,list,topology,time_milli,numNodes,killing_mechanism,percentage_nodes_killed,algorithm})
+        GenServer.cast(Main_process,{:killing_process})
         #Main Process End
         IO.puts "....start protocol"
         #Start Gossip if the input is gossip
         if(algorithm=="gossip") do
             GenServer.cast(Main_process,{:random_node,algorithm}) 
         else if(algorithm=="push-sum") do
-              #GenServer.cast(Main_process,{:random_node}) 
-              #IO.puts "I am up"
               GenServer.cast(Main_process,{:random_node,algorithm}) 
-              #IO.puts "I am down"
              end
         end
     end
@@ -201,6 +208,12 @@ use GenServer
     def init(:ok) do
         {:ok,%{}}
     end
+
+    def handle_cast({:update_alive_status_gossip},state) do
+        {_,state_is_alive}=Map.get_and_update(state,:is_alive, fn current_value -> {current_value,false} end)
+        state=Map.merge(state,state_is_alive)
+        {:noreply,state}
+    end 
 
     def handle_cast({:updategossip,topology,list_of_neighbours},state) do
         #IO.inspect "List of neighbours: #{inspect list_of_neighbours}"
