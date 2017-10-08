@@ -25,7 +25,7 @@ We have made two different implementaions for gossip algorithm and one for push-
     > number_of_nodes: integer values (0-2000)<br>
     > type_of_topology: line || 2D || imp2D || full NOTE: Please be carefull about the letter casing<br>
     > type_of_algorithm: gossip | push-sum <br>
-    > percentage_nodes_to_kill: float value (0-100)
+    > percentage_nodes_to_kill: integer value (0-100)
     
 #### Sample input output<br>
 ###### gossip<br>
