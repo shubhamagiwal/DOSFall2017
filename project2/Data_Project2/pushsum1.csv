@@ -1,0 +1,14 @@
+Push Sum Implementation_1,,,,,
+num Nodes,imp2d(ms),2d(ms),line(ms),full(ms),Algo
+100,4,13,8,11,Push-Sum
+200,12,22,16,20,Push-Sum
+300,24,28,29,42,Push-Sum
+400,43,47,58,60,Push-Sum
+500,58,66,67,79,Push-Sum
+600,83,87,97,110,Push-Sum
+700,112,123,129,126,Push-Sum
+800,151,156,167,164,Push-Sum
+900,192,203,197,208,Push-Sum
+1000,254,264,246,259,Push-Sum
+5000,5699,5630,5614,5703,Push-Sum
+10000,22684,22825,22552,22588,Push-Sum

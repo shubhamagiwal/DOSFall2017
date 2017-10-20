@@ -12,14 +12,14 @@ We have made two different implementaions for gossip algorithm and one for push-
 
 #### Instructions for running the program:
 1. Once in project2 directory, run command `mix escript.build`. This will build an executable file ignore warnings if any.
-2. After successfull compilation please follow the command stated below:<br>
+3. After successfull compilation please follow the command stated below:<br>
     `./project2	  number_of_nodes		type_of_topology	type_of_algorithm`<br>
     > number_of_nodes: integer values (0-2000)<br>
     > type_of_topology: line || 2D || imp2D || full NOTE: Please be carefull about the letter casing<br>
     > type_of_algorithm: gossip | push-sum <br>
     
 #### Instructions for bonus part:
-1. Follow steps 1 from above.
+1. Follow step 1 nfrom above.
 2. After successfull compilation please follow the command stated below:<br>
     `./project2	  number_of_nodes		type_of_topology	type_of_algorithm {begin_kill | after_kill} percentage_nodes_to_kill`<br>
     > number_of_nodes: integer values (0-2000)<br>
