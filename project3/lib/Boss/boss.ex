@@ -3,7 +3,7 @@ use GenServer
 @gossip 10
 @pushsumcount 3
 
- def start_boss()
+ def start_boss() do
 
  end
 
