@@ -1,18 +1,17 @@
 defmodule Project3 do
-  @moduledoc """
-  Documentation for Project3.
-  """
 
-  @doc """
-  Hello world.
+ def main(args \\ []) do
 
-  ## Examples
+        if(length(args)==2) do
+            #Create the ser
+            loop()
+        else
+            IO.puts "Enter the arguments as mentioned in the documentation"
+        end 
+end
 
-      iex> Project3.hello
-      :world
+def loop() do
+   loop()
+end
 
-  """
-  def hello do
-    :world
-  end
 end
