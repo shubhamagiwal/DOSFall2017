@@ -3,7 +3,7 @@ defmodule Project3 do
  def main(args \\ []) do
 
         if(length(args)==2) do
-            #Create the ser
+            #Create the server Processs
             loop()
         else
             IO.puts "Enter the arguments as mentioned in the documentation"
