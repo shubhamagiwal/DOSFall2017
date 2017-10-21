@@ -21,7 +21,7 @@ use GenServer
         #IO.inspect list_of_nodes_with_pids
 
         #Building the topology
-        build_topology(list_of_nodes_with_pids)
+        build_topology(list_of_nodes_with_pids,numRequest)
         
 
  end
@@ -39,16 +39,14 @@ end
 
 
 
-def build_topology(list_of_nodes_with_pids) do
+def build_topology(list_of_nodes_with_pids,numRequest) do
 
         Enum.each(Enum.with_index(list_of_nodes_with_pids),fn(x)->
                 larger_leaf_set=Project3.Node.larger_leaf_set(list_of_nodes_with_pids,elem(x,1),@b,[])
                 smaller_leaf_set=Project3.Node.smaller_leaf_set(list_of_nodes_with_pids,elem(x,1),@b,[])
                 neighbor_set = Project3.Node.neighbor_set(list_of_nodes_with_pids, elem(x,1), 0, [])
                 routing_table=Project3.Node.create_routing_table_for_a_node(@b,elem(elem(x,0),1),list_of_nodes_with_pids)
-                #Updating the leaf set for each given process
-                IO.inspect routing_table
-                GenServer.cast(elem(elem(x,0),0),{:updateLeafSet,larger_leaf_set,smaller_leaf_set,neighbor_set,routing_table})
+                GenServer.cast(elem(elem(x,0),0),{:updateLeafSet,larger_leaf_set,smaller_leaf_set,neighbor_set,routing_table,numRequest})
          end)
 
 end

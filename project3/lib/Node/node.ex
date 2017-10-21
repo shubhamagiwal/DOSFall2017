@@ -16,21 +16,25 @@ use GenServer
 
     #update the larger leaf set , smaller leaf set
 
-    def handle_cast({:updateLeafSet,larger_leaf_set,smaller_leaf_set,neighbor_set,routing_table},state) do
+    def handle_cast({:updateLeafSet,larger_leaf_set,smaller_leaf_set,neighbor_set,routing_table,num_request},state) do
         {_,state_larger_leaf_set}=Map.get_and_update(state,:larger_leaf_set, fn current_value -> {current_value,larger_leaf_set} end)
         {_,state_smaller_leaf_set}=Map.get_and_update(state,:smaller_leaf_set, fn current_value -> {current_value,smaller_leaf_set} end)
         {_,state_neighbor_set}=Map.get_and_update(state,:neighbor_set, fn current_value -> {current_value,neighbor_set} end)
         {_,state_routing_table}=Map.get_and_update(state,:routing_table, fn current_value -> {current_value,routing_table} end)
+        {_,state_num_request}=Map.get_and_update(state,:num_request, fn current_value -> {current_value,num_request} end)
 
         state=Map.merge(state,state_larger_leaf_set)
         state=Map.merge(state,state_smaller_leaf_set)
         state=Map.merge(state, state_neighbor_set)
         state=Map.merge(state, state_routing_table)
+        state=Map.merge(state, state_num_request)
 
         #IO.puts "#{inspect state}"
 
         {:noreply,state}
     end
+
+    def handle_cast({:route,hash,hopcou})
 
     def neighbor_set(node_list, index, start_value, neighbor_list) do
         if(start_value < 9) do
