@@ -1,7 +1,6 @@
 defmodule Project3.Boss do
 use GenServer
-@gossip 10
-@pushsumcount 3
+@b 4
 
  def start_boss(server_tuple) do
         serverName=String.to_atom(to_string("server@")<>elem(server_tuple,0))
@@ -15,11 +14,14 @@ use GenServer
         #Spawn Nodes for given number of nodes
         #Here we are not going to run for more than a 100 thousand nodes  to restricting the node space to 100000
         number=1..100000
+        # Returns a tuple with hash, node id and pid for the every node
         list_of_nodes_with_pids=spawn_nodes(numNodes,1,[],[],Enum.to_list(number))
-       # IO.inspect list_of_nodes_with_pids
+        # Returns a tuple with hash, node id and pid for the every node in ascending order of their node ids to start with the topology
+        list_of_nodes_with_pids=Enum.sort(list_of_nodes_with_pids,fn(x,y) -> elem(x,2)<elem(y,2)  end)
+        IO.inspect list_of_nodes_with_pids
 
-        list_of_nodes=Enum.sort(list_of_nodes_with_pids,fn(x,y) -> elem(x,2)<elem(y,2)  end)
-        IO.inspect list_of_nodes
+        #Building the topology
+        build_topology(list_of_nodes_with_pids)
         
 
  end
@@ -33,6 +35,19 @@ use GenServer
                 l=spawn_nodes(numNodes,start_value,l,list_nodesidspace_used,nodeIdSpace_list)
              end
              l
+end
+
+
+
+def build_topology(list_of_nodes_with_pids) do
+
+        Enum.each(Enum.with_index(list_of_nodes_with_pids),fn(x)->
+                larger_leaf_set=Project3.Node.larger_leaf_set(list_of_nodes_with_pids,elem(x,1),@b,[])
+                smaller_leaf_set=Project3.Node.smaller_leaf_set(list_of_nodes_with_pids,elem(x,1),@b,[])
+                IO.puts "Larger set for #{inspect x} = #{inspect larger_leaf_set}"  
+                IO.puts "smaller set for #{inspect x} = #{inspect smaller_leaf_set}"  
+         end)
+
 end
 
 end
