@@ -16,10 +16,24 @@ use GenServer
         {:ok,%{:node_id => args}}
     end
 
+    #update the larger leaf set and smaller leaf set
+
+    def handle_cast({:updateLeafSet,larger_leaf_set,smaller_leaf_set},state) do
+        {_,state_larger_leaf_set}=Map.get_and_update(state,:larger_leaf_set, fn current_value -> {current_value,larger_leaf_set} end)
+        {_,state_smaller_leaf_set}=Map.get_and_update(state,:smaller_leaf_set, fn current_value -> {current_value,smaller_leaf_set} end)
+       
+        state=Map.merge(state,state_larger_leaf_set)
+        state=Map.merge(state,state_smaller_leaf_set)
+
+        IO.puts "#{inspect state}"
+
+        {:noreply,state}
+    end
+
 
     # Compute the larger Leaf Set for given node
     def larger_leaf_set(node_list,index,b,larger_leaf_set_list) do
-        IO.puts "#{inspect b} #{inspect index} #{inspect larger_leaf_set_list}"
+        #IO.puts "#{inspect b} #{inspect index} #{inspect larger_leaf_set_list}"
         if((index==length(node_list) or index+1>length(node_list) or index+1==length(node_list)) and b>0)  do
                 if(index+1==length(node_list) and b>0) do
                       larger_leaf_set_list=larger_leaf_set(node_list,-1,b,larger_leaf_set_list)
