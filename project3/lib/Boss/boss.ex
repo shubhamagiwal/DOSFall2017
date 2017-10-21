@@ -15,8 +15,13 @@ use GenServer
         #Spawn Nodes for given number of nodes
         #Here we are not going to run for more than a 100 thousand nodes  to restricting the node space to 100000
         number=1..100000
-        list=spawn_nodes(numNodes,1,[],[],Enum.to_list(number))
-        IO.inspect list
+        list_of_nodes_with_pids=spawn_nodes(numNodes,1,[],[],Enum.to_list(number))
+       # IO.inspect list_of_nodes_with_pids
+
+        list_of_nodes=Enum.sort(list_of_nodes_with_pids,fn(x,y) -> elem(x,2)<elem(y,2)  end)
+        IO.inspect list_of_nodes
+        
+
  end
 
  def spawn_nodes(numNodes,start_value,l,list_nodesidspace_used,nodeIdSpace_list) do
@@ -29,7 +34,5 @@ use GenServer
              end
              l
 end
-
-
 
 end
