@@ -14,16 +14,18 @@ use GenServer
         {:ok,%{:node_id => args}}
     end
 
-    #update the larger leaf set and smaller leaf set
+    #update the larger leaf set , smaller leaf set
 
-    def handle_cast({:updateLeafSet,larger_leaf_set,smaller_leaf_set,neighbor_set},state) do
+    def handle_cast({:updateLeafSet,larger_leaf_set,smaller_leaf_set,neighbor_set,routing_table},state) do
         {_,state_larger_leaf_set}=Map.get_and_update(state,:larger_leaf_set, fn current_value -> {current_value,larger_leaf_set} end)
         {_,state_smaller_leaf_set}=Map.get_and_update(state,:smaller_leaf_set, fn current_value -> {current_value,smaller_leaf_set} end)
         {_,state_neighbor_set}=Map.get_and_update(state,:neighbor_set, fn current_value -> {current_value,neighbor_set} end)
-       
+        {_,state_routing_table}=Map.get_and_update(state,:routing_table, fn current_value -> {current_value,routing_table} end)
+
         state=Map.merge(state,state_larger_leaf_set)
         state=Map.merge(state,state_smaller_leaf_set)
         state=Map.merge(state, state_neighbor_set)
+        state=Map.merge(state, state_routing_table)
 
         #IO.puts "#{inspect state}"
 
