@@ -5,7 +5,7 @@ use GenServer
     def start(random_node_id) do
         # Here Node Space is 2^128-1
         #node_Id=Project3.LibFunctions.randomizer(37,:numeric);
-        hash=:crypto.hash(:sha256, to_string(random_node_id)) |> Base.encode16
+        hash=:crypto.hash(:sha, to_string(random_node_id)) |> Base.encode16
         IO.puts "#{inspect random_node_id} - #{inspect hash}"
         {:ok,pid} = GenServer.start_link(__MODULE__,hash)
         {pid,hash,random_node_id}
@@ -74,6 +74,82 @@ use GenServer
              end
         end
         smaller_leaf_set_list
+    end
+
+    #Routing Table creation
+    def create_routing_table_for_a_node(b,hashOfNode,nodelist) do
+        numberOfColumns=trunc(:math.pow(2,b)-1) # 2^b-1 number of columns
+        numberOfRows=round(:math.log(length(nodelist))/:math.log(:math.pow(2,b))) # log(N)/log(2^b)
+        # Create a Map for the two dimensional array in elixir link(http://blog.danielberkompas.com/2016/04/23/multidimensional-arrays-in-elixir.html)
+        routing_table=%{}
+        # Routing table initialised
+        IO.puts "numberOfColumns = #{inspect numberOfColumns}" 
+        IO.puts "numberOfRows = #{inspect numberOfRows}" 
+
+        routing_table=route_rows(nodelist,numberOfColumns,numberOfRows,0,hashOfNode,routing_table)
+        IO.puts "hashNode = #{inspect hashOfNode}" 
+        IO.puts "routing_table=#{inspect routing_table}"
+        routing_table
+    end
+
+
+    def route_rows(node_list,numberOfColumns,numberOfRows,row_index,hashOfNode,routing_table) do
+         # IO.puts "#{row_index} #{numberOfRows}"
+        if(row_index<numberOfRows) do
+            if(row_index==0) do
+                # IO.puts "#{row_index}"
+                substring="";
+                routing_table=route_columns(node_list,numberOfColumns,numberOfRows,row_index,0,hashOfNode,substring,routing_table)
+            else
+                # IO.puts "#{row_index}"
+                substring=String.slice(hashOfNode,0..row_index-1)
+                routing_table=route_columns(node_list,numberOfColumns,numberOfRows,row_index,0,hashOfNode,substring,routing_table)
+            end
+            routing_table=route_rows(node_list,numberOfColumns,numberOfRows,row_index+1,hashOfNode,routing_table)
+            routing_table
+        end
+
+    end
+
+    def route_columns(node_list,numberOfColumns,numberOfRows,row_index,column_index,hashOfNode,substring,routing_table) do
+       
+        if(column_index<numberOfColumns) do
+            substring=substring<>to_string(column_index)
+            value=find_element_in_list_match_substring(node_list,substring)
+            IO.inspect value
+            IO.inspect routing_table[row_index]
+            IO.inspect column_index
+            IO.inspect row_index
+            IO.inspect routing_table
+            # Update the routing table
+               if(routing_table[row_index]!=nil) do
+                    {_,updated_routing_table}=Map.get_and_update(routing_table,row_index,fn current_value -> {current_value,Map.merge(current_value,%{column_index => value})} end)
+                    routing_table=Map.merge(routing_table,updated_routing_table)             
+               else
+                   {_,updated_routing_table}=Map.get_and_update(routing_table,row_index,fn current_value -> {current_value, %{column_index => value}} end)
+                   routing_table=Map.merge(routing_table,updated_routing_table)
+               end
+            # end for updating the routing table
+            routing_table=route_columns(node_list,numberOfColumns,numberOfRows,row_index,column_index+1,hashOfNode,substring,routing_table)
+        end
+
+        routing_table
+
+    end
+
+    def find_element_in_list_match_substring(node_list,substring) do
+        value={}
+        IO.inspect substring
+        Enum.each(node_list,fn(x) ->  
+             if(String.slice(elem(x,1),0..(String.length(substring)-1))==substring) do
+                value=x
+             end
+        end)
+
+        if Tuple.to_list(value)|>length() <=0 do
+            value={-1,-1,-1}
+        end
+        value
     end
 
 end

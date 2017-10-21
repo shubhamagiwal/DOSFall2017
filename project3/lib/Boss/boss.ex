@@ -1,6 +1,6 @@
 defmodule Project3.Boss do
 use GenServer
-@b 4
+@b 2
 
  def start_boss(server_tuple) do
         serverName=String.to_atom(to_string("server@")<>elem(server_tuple,0))
@@ -13,7 +13,7 @@ use GenServer
 
         #Spawn Nodes for given number of nodes
         #Here we are not going to run for more than a 100 thousand nodes  to restricting the node space to 100000
-        number=1..100000
+        number=1..numNodes
         # Returns a tuple with hash, node id and pid for the every node
         list_of_nodes_with_pids=spawn_nodes(numNodes,1,[],[],Enum.to_list(number))
         # Returns a tuple with hash, node id and pid for the every node in ascending order of their node ids to start with the topology
@@ -46,6 +46,8 @@ def build_topology(list_of_nodes_with_pids) do
                 smaller_leaf_set=Project3.Node.smaller_leaf_set(list_of_nodes_with_pids,elem(x,1),@b,[])
                 # IO.puts "Larger set for #{inspect x} = #{inspect larger_leaf_set}"  
                 # IO.puts "smaller set for #{inspect x} = #{inspect smaller_leaf_set}"  
+                routing_table=Project3.Node.create_routing_table_for_a_node(@b,elem(elem(x,0),1),list_of_nodes_with_pids)
+                #Updating the leaf set for each given process
                 GenServer.cast(elem(elem(x,0),0),{:updateLeafSet,larger_leaf_set,smaller_leaf_set})
          end)
 
