@@ -76,7 +76,7 @@ use GenServer
         smaller_leaf_set_list
     end
 
-    #Routing Table creation
+    #Routing Table creation for a given node
     def create_routing_table_for_a_node(b,hashOfNode,nodelist) do
         numberOfColumns=trunc(:math.pow(2,b)-1) # 2^b-1 number of columns
         numberOfRows=round(:math.log(length(nodelist))/:math.log(:math.pow(2,b))) # log(N)/log(2^b)
@@ -87,8 +87,8 @@ use GenServer
         #IO.puts "numberOfRows = #{inspect numberOfRows}" 
 
         routing_table=route_rows(nodelist,numberOfColumns,numberOfRows,0,hashOfNode,routing_table)
-        IO.puts "hashNode = #{inspect hashOfNode}" 
-        IO.puts "routing_table=#{inspect routing_table}"
+        #IO.puts "hashNode = #{inspect hashOfNode}" 
+        #IO.puts "routing_table=#{inspect routing_table}"
         routing_table
     end
 
@@ -121,7 +121,7 @@ use GenServer
         old_substring=substring
         if(column_index<numberOfColumns) do
             substring=substring<>to_string(column_index)
-            value=find_element_in_list_match_substring(node_list,substring)
+            value=find_element_in_list_match_substring(node_list,substring,hashOfNode)
                if(routing_table[row_index]!=nil) do
                     {_,updated_routing_table}=Map.get_and_update(routing_table,row_index,fn current_value -> {current_value,Map.merge(current_value,%{column_index => value})} end)
                     routing_table=Map.merge(routing_table,updated_routing_table)             
@@ -136,21 +136,22 @@ use GenServer
 
     end
 
-    def find_element_in_list_match_substring(node_list,substring) do
+    def find_element_in_list_match_substring(node_list,substring,hashOfNode) do
         value={}
-        value=find_element_loop(node_list,substring,0,value)
+        value=find_element_loop(node_list,substring,0,value,hashOfNode)
         if tuple_size(value) <=0 do
             value={-1,-1,-1}
         end
         value
     end
 
-    def find_element_loop(node_list,substring,index,value) do
+    def find_element_loop(node_list,substring,index,value,hashOfNode) do
         if(index<length(node_list)) do
-             if(String.starts_with?elem(Enum.at(node_list,index),1),substring) do
+             if(String.starts_with?(elem(Enum.at(node_list,index),1),substring) and 
+                elem(Enum.at(node_list,index),1)!=hashOfNode) do
                 value=Enum.at(node_list,index)
              else
-                value=find_element_loop(node_list,substring,index+1,value)
+                value=find_element_loop(node_list,substring,index+1,value,hashOfNode)
              end
         end
         value
