@@ -30,7 +30,6 @@ use GenServer
     end
 
     def neighbor_set(node_list, index, start_value, neighbor_list) do
-
         if(start_value < 9) do
             node_random = Enum.random(node_list)
             node_list = node_list -- [node_random]
@@ -44,7 +43,6 @@ use GenServer
             neighbor_list=neighbor_set(node_list, index, start_value, neighbor_list)
         end
         neighbor_list
-
     end
 
 
