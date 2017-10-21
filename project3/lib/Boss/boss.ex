@@ -18,7 +18,7 @@ use GenServer
         list_of_nodes_with_pids=spawn_nodes(numNodes,1,[],[],Enum.to_list(number))
         # Returns a tuple with hash, node id and pid for the every node in ascending order of their node ids to start with the topology
         list_of_nodes_with_pids=Enum.sort(list_of_nodes_with_pids,fn(x,y) -> elem(x,2)<elem(y,2)  end)
-        IO.inspect list_of_nodes_with_pids
+        #IO.inspect list_of_nodes_with_pids
 
         #Building the topology
         build_topology(list_of_nodes_with_pids)
@@ -44,11 +44,12 @@ def build_topology(list_of_nodes_with_pids) do
         Enum.each(Enum.with_index(list_of_nodes_with_pids),fn(x)->
                 larger_leaf_set=Project3.Node.larger_leaf_set(list_of_nodes_with_pids,elem(x,1),@b,[])
                 smaller_leaf_set=Project3.Node.smaller_leaf_set(list_of_nodes_with_pids,elem(x,1),@b,[])
-                # IO.puts "Larger set for #{inspect x} = #{inspect larger_leaf_set}"  
-                # IO.puts "smaller set for #{inspect x} = #{inspect smaller_leaf_set}"  
+                neighbor_set = Project3.Node.neighbor_set(list_of_nodes_with_pids, elem(x,1), 0, [])
+                IO.inspect "Printing here ------------- #{elem(x,1)}"
+                IO.inspect neighbor_set
                 routing_table=Project3.Node.create_routing_table_for_a_node(@b,elem(elem(x,0),1),list_of_nodes_with_pids)
                 #Updating the leaf set for each given process
-                GenServer.cast(elem(elem(x,0),0),{:updateLeafSet,larger_leaf_set,smaller_leaf_set})
+                GenServer.cast(elem(elem(x,0),0),{:updateLeafSet,larger_leaf_set,smaller_leaf_set,neighbor_set})
          end)
 
 end

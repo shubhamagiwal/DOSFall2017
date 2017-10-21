@@ -6,7 +6,7 @@ use GenServer
         # Here Node Space is 2^128-1
         #node_Id=Project3.LibFunctions.randomizer(37,:numeric);
         hash=:crypto.hash(:sha, to_string(random_node_id)) |> Base.encode16
-        IO.puts "#{inspect random_node_id} - #{inspect hash}"
+        #IO.puts "#{inspect random_node_id} - #{inspect hash}"
         {:ok,pid} = GenServer.start_link(__MODULE__,hash)
         {pid,hash,random_node_id}
     end
@@ -18,16 +18,33 @@ use GenServer
 
     #update the larger leaf set and smaller leaf set
 
-    def handle_cast({:updateLeafSet,larger_leaf_set,smaller_leaf_set},state) do
+    def handle_cast({:updateLeafSet,larger_leaf_set,smaller_leaf_set,neighbor_set},state) do
         {_,state_larger_leaf_set}=Map.get_and_update(state,:larger_leaf_set, fn current_value -> {current_value,larger_leaf_set} end)
         {_,state_smaller_leaf_set}=Map.get_and_update(state,:smaller_leaf_set, fn current_value -> {current_value,smaller_leaf_set} end)
+        {_,state_neighbor_set}=Map.get_and_update(state,:neighbor_set, fn current_value -> {current_value,neighbor_set} end)
        
         state=Map.merge(state,state_larger_leaf_set)
         state=Map.merge(state,state_smaller_leaf_set)
-
-        IO.puts "#{inspect state}"
-
+        state=Map.merge(state, state_neighbor_set)
         {:noreply,state}
+    end
+
+    def neighbor_set(node_list, index, start_value, neighbor_list) do
+
+        if(start_value < 9) do
+            node_random = Enum.random(node_list)
+            node_list = node_list -- [node_random]
+            if ( :erlang.abs(elem(node_random,2)-index)> 2 or :erlang.abs(elem(node_random,2)-index) < 2) do
+                neighbor_list = neighbor_list ++ [node_random]
+            else
+                #neighbor_list = neighbor_list ++ ["no-neighbor"]
+                # Do nothing
+            end
+            start_value=start_value+1
+            neighbor_list=neighbor_set(node_list, index, start_value, neighbor_list)
+        end
+        neighbor_list
+
     end
 
 
@@ -83,12 +100,12 @@ use GenServer
         # Create a Map for the two dimensional array in elixir link(http://blog.danielberkompas.com/2016/04/23/multidimensional-arrays-in-elixir.html)
         routing_table=%{}
         # Routing table initialised
-        IO.puts "numberOfColumns = #{inspect numberOfColumns}" 
-        IO.puts "numberOfRows = #{inspect numberOfRows}" 
+        #IO.puts "numberOfColumns = #{inspect numberOfColumns}" 
+        #IO.puts "numberOfRows = #{inspect numberOfRows}" 
 
         routing_table=route_rows(nodelist,numberOfColumns,numberOfRows,0,hashOfNode,routing_table)
-        IO.puts "hashNode = #{inspect hashOfNode}" 
-        IO.puts "routing_table=#{inspect routing_table}"
+        #IO.puts "hashNode = #{inspect hashOfNode}" 
+        #IO.puts "routing_table=#{inspect routing_table}"
         routing_table
     end
 
@@ -116,11 +133,11 @@ use GenServer
         if(column_index<numberOfColumns) do
             substring=substring<>to_string(column_index)
             value=find_element_in_list_match_substring(node_list,substring)
-            IO.inspect value
-            IO.inspect routing_table[row_index]
-            IO.inspect column_index
-            IO.inspect row_index
-            IO.inspect routing_table
+            #IO.inspect value
+            #IO.inspect routing_table[row_index]
+            #IO.inspect column_index
+            #IO.inspect row_index
+            #IO.inspect routing_table
             # Update the routing table
                if(routing_table[row_index]!=nil) do
                     {_,updated_routing_table}=Map.get_and_update(routing_table,row_index,fn current_value -> {current_value,Map.merge(current_value,%{column_index => value})} end)
@@ -139,7 +156,7 @@ use GenServer
 
     def find_element_in_list_match_substring(node_list,substring) do
         value={}
-        IO.inspect substring
+        #IO.inspect substring
         Enum.each(node_list,fn(x) ->  
              if(String.slice(elem(x,1),0..(String.length(substring)-1))==substring) do
                 value=x
