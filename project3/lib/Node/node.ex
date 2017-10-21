@@ -3,8 +3,8 @@ use GenServer
     
     #Generate Node process
     def start(random_node_id) do
-        hash=:crypto.hash(:sha, to_string(random_node_id)) |> Base.encode16 |> Convertat.from_base(16) |> Convertat.to_base(4)
-        IO.puts "#{inspect random_node_id} - #{inspect hash}"
+        hash=:crypto.hash(:md5, to_string(random_node_id)) |> Base.encode16 |> Convertat.from_base(16) |> Convertat.to_base(4)
+        #IO.puts "#{inspect random_node_id} - #{inspect hash}"
         {:ok,pid} = GenServer.start_link(__MODULE__,hash)
         {pid,hash,random_node_id}
     end
