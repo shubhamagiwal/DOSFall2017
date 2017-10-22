@@ -35,13 +35,8 @@ def handle_cast({:delivered,hopcount,process,hash},state) do
      {_,state_total_request_received}=Map.get_and_update(state,:total_request_received, fn current_value -> {current_value,current_value+1} end)
      state=Map.merge(state,state_total_request_received)
 
-     if(state[:total_request_received]>=(state[:numRequest] * state[:numNodes]) 
-        or (0.8*state[:total_request_received])==(0.8*state[:numRequest] * state[:numNodes]) 
-        ) do
-        # The average hop count print
+     if(state[:total_request_received]>=(state[:numRequest] * state[:numNodes])) do
         average_hop_count=state[:hop_count]/(state[:numRequest] * state[:numNodes])
-        #IO.puts "#{inspect state[:hop_count]}"
-
         IO.puts "The average hop count is #{inspect average_hop_count}"
         Process.exit(self(),:normal)
      end

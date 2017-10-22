@@ -60,10 +60,8 @@ use GenServer
         #Recast to itself
         #Process.sleep(1_000)
         #IO.puts "key = #{key} send for #{inspect self()}"
-        GenServer.cast(self(),{:receive_request_to_cast,nodeId,count+1,node_list_count,process_id,hash,b})
+        GenServer.cast(self(),{:receive_request_to_cast,nodeId,count,node_list_count,process_id,hash,b})
         #Recast to itself done
-
-        #Generate Key and cast again with count incremented is completed and casted
         end
         {:noreply,state}
 
@@ -81,7 +79,7 @@ use GenServer
         if(key>=lowersLeafSetValue and key<=higherLeafSetValue) do
             # Value is in the neighbourhood set
             # IO.puts "I am in the neigbhourser #{inspect self()}"
-            #IO.puts "Delivered"
+            #IO.puts "Delivered #{key} in leafset"
             GenServer.cast(Boss_Server,{:delivered,hops+1,self(),key})
         else
             #Find the longest matching prefix which the key and hashNode
@@ -106,6 +104,7 @@ use GenServer
                 if(elem(nearest_node,2)==-1) do
                     #Do not cast this is the nearest neigbhour
                     #IO.puts "Delivered"
+                    #IO.puts "Delivered #{key} not found"
                     GenServer.cast(Boss_Server,{:delivered,hops,self(),key})
                 else
                     #Cast to the given nearest neighbour
