@@ -1,10 +1,13 @@
 defmodule Project3.Node do
 use GenServer
+@random_string "shubhamagiwal92"
+@nodeLength 10
     
     #Generate Node process
-    def start(random_node_id) do
-        hash=:crypto.hash(:sha, to_string(random_node_id)) |> Base.encode16 |> Convertat.from_base(16) |> Convertat.to_base(4)
-        IO.puts "#{inspect random_node_id} - #{inspect hash}"
+    def start(random_node_id,b) do
+        hash=:crypto.hash(:sha, to_string(random_node_id)) |> Base.encode16 |> Convertat.from_base(16) |> Convertat.to_base(b+1)
+        hash=String.slice(hash,0..@nodeLength)
+        #IO.puts "#{inspect random_node_id} - #{inspect hash}"
         {:ok,pid} = GenServer.start_link(__MODULE__,hash)
         {pid,hash,random_node_id}
     end
@@ -16,26 +19,210 @@ use GenServer
 
     #update the larger leaf set , smaller leaf set
 
-    def handle_cast({:updateLeafSet,larger_leaf_set,smaller_leaf_set,neighbor_set,routing_table,num_request},state) do
+    def handle_cast({:updateLeafSet,larger_leaf_set,smaller_leaf_set,neighbor_set,routing_table,num_request,numberRows,numberColumns},state) do
         {_,state_larger_leaf_set}=Map.get_and_update(state,:larger_leaf_set, fn current_value -> {current_value,larger_leaf_set} end)
         {_,state_smaller_leaf_set}=Map.get_and_update(state,:smaller_leaf_set, fn current_value -> {current_value,smaller_leaf_set} end)
         {_,state_neighbor_set}=Map.get_and_update(state,:neighbor_set, fn current_value -> {current_value,neighbor_set} end)
         {_,state_routing_table}=Map.get_and_update(state,:routing_table, fn current_value -> {current_value,routing_table} end)
         {_,state_num_request}=Map.get_and_update(state,:num_request, fn current_value -> {current_value,num_request} end)
+        {_,state_hop_count}=Map.get_and_update(state,:hop_count, fn current_value -> {current_value,0} end)
+        {_,state_number_rows}=Map.get_and_update(state,:number_rows, fn current_value -> {current_value,numberRows} end)
+        {_,state_number_columns}=Map.get_and_update(state,:number_columns, fn current_value -> {current_value,numberColumns} end)
+
 
         state=Map.merge(state,state_larger_leaf_set)
         state=Map.merge(state,state_smaller_leaf_set)
         state=Map.merge(state, state_neighbor_set)
         state=Map.merge(state, state_routing_table)
         state=Map.merge(state, state_num_request)
+        state=Map.merge(state, state_hop_count)
+        state=Map.merge(state, state_number_rows)
+        state=Map.merge(state, state_number_columns)
 
         #IO.puts "#{inspect state}"
 
         {:noreply,state}
     end
 
+    def handle_cast({:receive_request_to_cast,nodeId,count,node_list_count,process_id,hash,b},state) do
+        if(count<state[:num_request]) do
+        #Generate Key and cast again with count incremented
+        #Generated the random key and cast
+        key=:crypto.hash(:sha,Project3.LibFunctions.randomizer(10,true))|> Base.encode16 |> Convertat.from_base(16) |> Convertat.to_base(b+1)
+        key=String.slice(key,0..@nodeLength)
+        #IO.puts "#{key} is the the key and #{hash} is the hash"
+        GenServer.cast(self(),{:route,key,hash,b,0})
+        #Generated the random key and cast ended 
+
+        #Recast to itself
+        GenServer.cast(self(),{:receive_request_to_cast,nodeId,count,node_list_count,process_id,hash,b})
+        #Recast to itself done
+
+        #Generate Key and cast again with count incremented is completed and casted
+        end
+        {:noreply,state}
+
+    end
+
+    def handle_cast({:route,key,hashOfNode,b,hops},state) do
+
+        #Combine the leafsets small and big with sorting
+        leafsets=state[:larger_leaf_set]++state[:smaller_leaf_set]
+        leafsets=Enum.sort(leafsets,fn(x,y) -> elem(x,2)<elem(y,2)  end)
+
+        lowersLeafSetValue=elem(Enum.at(leafsets,0),1)
+        higherLeafSetValue=elem(Enum.at(leafsets,length(leafsets)-1),1)
+
+        if(key>=lowersLeafSetValue and key<=higherLeafSetValue) do
+            # Value is in the neighbourhood set
+            # IO.puts "I am in the neigbhourser #{inspect self()}"
+            GenServer.cast(Boss_Server,{:delivered,hops+1})
+        else
+            #Find the longest matching prefix which the key and hashNode
+            #IO.puts "I am in other the neigbhourser #{inspect self()}"
+
+            row=longest_prefix_matched(key,hashOfNode,0,0)
+            if(state[:number_rows]<= row) do
+                #    def nearest_neighbour(key,row,columnIndex,longest_prefix_count) do
+                nearest_neighbour=nearest_neighbour(key,state[:routing_table][state[:number_rows]-1],0,row,state[:number_columns])
+            else
+                nearest_neighbour=nearest_neighbour(key,state[:routing_table][row],0,row,state[:number_columns])
+            end
+
+            #IO.inspect nearest_neighbour
+
+            if(elem(nearest_neighbour,2)==-1) do
+                # No Nearest longest+1 prefix match found
+                # Combine Leaf small set,right set and routing table set
+                combineSet=leafsets++get_routing_table_row(state[:routing_table],state[:number_rows],state[:number_columns],[],0,0)
+                #IO.inspect combineSet
+                nearest_node=no_nearest_longestplus1_prefix_node(combineSet,key,hashOfNode,row)
+
+                if(elem(nearest_node,2)==-1) do
+                    #Do not cast this is the nearest neigbhour
+                    GenServer.cast(Boss_Server,{:delivered,hops})
+                else
+                    #Cast to the given nearest neighbour
+                    GenServer.cast(elem(nearest_node,0),{:route,key,hashOfNode,b,hops+1})
+                end
+            else
+                # Yes Nearest longest+1 prefix match found
+                # Send it to the given node with the incremented hop count
+                GenServer.cast(elem(nearest_neighbour,0),{:route,key,hashOfNode,b,hops+1})
+                #IO.puts "Send"
+
+            end
+           
+        end
+
+
+        #Combine the leafset small and big with sorting ended
+        {:noreply,state}
+
+    end
+
+    # routing for No nearest longest+1 prefix match found
+    def no_nearest_longestplus1_prefix_node(combineSet,d,a,l) do
+        #IO.puts "#{inspect self()} #{inspect length(combineSet)} #{inspect d} #{inspect a} #{inspect l}"
+        value=no_nearest_longestplus1_loop(combineSet,d,a,l,0,length(combineSet))
+        value
+    end 
+
+    def no_nearest_longestplus1_loop(combineSet,d,a,l,start_value,length) do
+        #IO.puts "#{inspect self()} #{inspect length(combineSet)} #{inspect d} #{inspect a} #{inspect l}"
+        value = {-1,-1,-1}
+
+        if(start_value<length) do
+            shl=longest_prefix_matched(elem(Enum.at(combineSet,start_value),1),d,0,0)
+            #IO.puts "#{shl} is shl_new"
+           
+
+            {t_changed,_}=Float.parse(elem(Enum.at(combineSet,start_value),1))
+            {d_changed,_}=Float.parse(d)
+            {a_changed,_}=Float.parse(a)
+
+            if( shl>=l and 
+                :erlang.abs(t_changed-d_changed)>:erlang.abs(a_changed-d_changed) and 
+                start_value<length) do
+                    #IO.inspect "I am here"
+                    value=Enum.at(combineSet,start_value)
+                   # IO.puts "Longest+1"
+            else if(start_value<length) do
+               #IO.puts "#{inspect self()} #{inspect length(combineSet)} #{inspect d} #{inspect a} #{inspect l}  #{inspect start_value} in less"
+               value=no_nearest_longestplus1_loop(combineSet,d,a,l,start_value+1,length)   
+            else  
+            
+                 end
+            end
+
+        end
+
+        value
+    end
+
+    #Get the routing table with no null values
+    def get_routing_table_row(routing_table,number_rows,number_columns,routing_table_list,row_index,column_index) do
+        if(row_index<number_rows) do
+            routing_table1=get_routing_table_column(routing_table,number_rows,number_columns,routing_table_list,row_index,column_index)
+            routing_table_list=routing_table_list++routing_table1
+            routing_table2=get_routing_table_row(routing_table,number_rows,number_columns,routing_table_list,row_index+1,column_index)
+            routing_table_list=routing_table_list++routing_table2
+        end
+
+        #IO.inspect routing_table_list
+        routing_table_list
+
+    end
+
+
+    def get_routing_table_column(routing_table,number_rows,number_columns,routing_table_list,row_index,column_index) do
+         old_routing_table_list=routing_table_list
+         if(column_index<number_columns) do
+              if(elem(routing_table[row_index][column_index],2)!=-1) do
+                 old_routing_table_list=old_routing_table_list++[routing_table[row_index][column_index]]
+                 routing_table_list=old_routing_table_list
+                 routing_table_list=get_routing_table_column(routing_table,number_rows,number_columns,routing_table_list,row_index,column_index+1)
+              end
+        end
+        routing_table_list
+    end
+
+    #Get the count of the longest prefix count match
+    def longest_prefix_matched(key,hash,start_value,longest_prefix_count) do
+        
+        {hash,_}=Float.parse(hash)
+        hash=hash|>trunc
+        hash=to_string(hash)
+        #IO.puts "#{key} and #{hash}"
+        if(String.at(key,start_value) == String.at(hash,start_value)) do
+         longest_prefix_count=longest_prefix_matched(key,hash,start_value+1,longest_prefix_count+1)
+        end
+        longest_prefix_count
+    end
+    
+    #Get the nearest neigbour for the given longest prefix count match
+    #nearest_neighbour=nearest_neighbour(key,state[:routing_table][row],0,row,state[:number_columns])
+
+    def nearest_neighbour(key,row,columnIndex,longest_prefix_count,num_columns) do
+        nearest_neighbour_value={-1,-1,-1}
+        #IO.puts "#{inspect self()} #{inspect row[columnIndex]} neareset  index #{columnIndex} num_columns #{num_columns}"
+       if(columnIndex < num_columns) do
+            if(elem(row[columnIndex],2)==-1) do
+                 nearest_neighbour_value=nearest_neighbour(key,row,columnIndex+1,longest_prefix_count,num_columns)
+            else
+                 if(String.at(key,longest_prefix_count+1) != String.at(to_string(elem(row[columnIndex],1)),longest_prefix_count+1)) do
+                         nearest_neighbour_value=nearest_neighbour(key,row,columnIndex+1,longest_prefix_count,num_columns)
+                 else
+                         nearest_neighbour_value=row[columnIndex]
+                 end
+            end
+        end
+        nearest_neighbour_value
+       
+    end
+
     def neighbor_set(node_list, index, start_value, neighbor_list) do
-        if(start_value < 9) do
+        if(start_value < 9 and length(node_list)!=0) do
             node_random = Enum.random(node_list)
             node_list = node_list -- [node_random]
             if ( :erlang.abs(elem(node_random,2)-index)> 2 or :erlang.abs(elem(node_random,2)-index) < 2) do
