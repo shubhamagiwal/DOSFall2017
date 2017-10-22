@@ -2,7 +2,7 @@ defmodule Project3 do
 
  def main(args \\ []) do
 
-        if(length(args)==2) do
+        if(length(args)==3) do
             #Create the server Processs
             Project3.LibFunctions.get_ip_address(args)|>Project3.Boss.start_boss
             loop()
