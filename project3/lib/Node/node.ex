@@ -7,7 +7,7 @@ use GenServer
     def start(random_node_id,b) do
         hash=:crypto.hash(:sha, to_string(random_node_id)) |> Base.encode16 |> Convertat.from_base(16) |> Convertat.to_base(b+1)
         #hash=String.slice(hash,0..@nodeLength)
-        #IO.puts "#{inspect random_node_id} - #{inspect hash}"
+        #IO.puts "#{inspect random_node_id} - #{inspect hash} - #{inspect self()}"
         {:ok,pid} = GenServer.start_link(__MODULE__,hash)
         {pid,hash,random_node_id}
     end
@@ -39,24 +39,28 @@ use GenServer
         state=Map.merge(state, state_number_rows)
         state=Map.merge(state, state_number_columns)
 
-        #IO.puts "#{inspect state}"
+        #IO.puts "#{inspect self()} #{inspect state}"
 
         {:noreply,state}
     end
 
     def handle_cast({:receive_request_to_cast,nodeId,count,node_list_count,process_id,hash,b},state) do
+       
         if(count<state[:num_request]) do
         #Generate Key and cast again with count incremented
         #Generated the random key and cast
-        key=:crypto.hash(:sha,Project3.LibFunctions.randomizer(10,true))|> Base.encode16 |> Convertat.from_base(16) |> Convertat.to_base(b+1)
-        
+        #random_number = to_string(:rand.uniform(node_list_count))
+        key=:crypto.hash(:sha,Project3.LibFunctions.randomizer(128,true))|> Base.encode16 |> Convertat.from_base(16) |> Convertat.to_base(b+1)
+        #IO.puts "#{inspect self()} is #{count} has key #{inspect key}"
         #key=String.slice(key,0..@nodeLength)
         #IO.puts "#{key} is the the key and #{hash} is the hash"
         GenServer.cast(self(),{:route,key,hash,b,0})
         #Generated the random key and cast ended 
 
         #Recast to itself
-        GenServer.cast(self(),{:receive_request_to_cast,nodeId,count,node_list_count,process_id,hash,b})
+        #Process.sleep(1_000)
+        #IO.puts "key = #{key} send for #{inspect self()}"
+        GenServer.cast(self(),{:receive_request_to_cast,nodeId,count+1,node_list_count,process_id,hash,b})
         #Recast to itself done
 
         #Generate Key and cast again with count incremented is completed and casted
@@ -69,7 +73,7 @@ use GenServer
 
         #Combine the leafsets small and big with sorting
         leafsets=state[:larger_leaf_set]++state[:smaller_leaf_set]
-        leafsets=Enum.sort(leafsets,fn(x,y) -> elem(x,2)<elem(y,2)  end)
+        leafsets=Enum.sort(leafsets,fn(x,y) -> elem(x,1)<elem(y,1)  end)
 
         lowersLeafSetValue=elem(Enum.at(leafsets,0),1)
         higherLeafSetValue=elem(Enum.at(leafsets,length(leafsets)-1),1)
@@ -77,11 +81,11 @@ use GenServer
         if(key>=lowersLeafSetValue and key<=higherLeafSetValue) do
             # Value is in the neighbourhood set
             # IO.puts "I am in the neigbhourser #{inspect self()}"
-            GenServer.cast(Boss_Server,{:delivered,hops+1})
+            #IO.puts "Delivered"
+            GenServer.cast(Boss_Server,{:delivered,hops+1,self(),key})
         else
             #Find the longest matching prefix which the key and hashNode
             #IO.puts "I am in other the neigbhourser #{inspect self()}"
-
             row=longest_prefix_matched(key,hashOfNode,0,0)
             if(state[:number_rows]<= row) do
                 #    def nearest_neighbour(key,row,columnIndex,longest_prefix_count) do
@@ -98,24 +102,26 @@ use GenServer
                 combineSet=leafsets++get_routing_table_row(state[:routing_table],state[:number_rows],state[:number_columns],[],0,0)
                 #IO.inspect combineSet
                 nearest_node=no_nearest_longestplus1_prefix_node(combineSet,key,hashOfNode,row)
-
+                #IO.puts "Nearest node for key #{inspect key} is #{inspect nearest_node} "
                 if(elem(nearest_node,2)==-1) do
                     #Do not cast this is the nearest neigbhour
-                    GenServer.cast(Boss_Server,{:delivered,hops})
+                    #IO.puts "Delivered"
+                    GenServer.cast(Boss_Server,{:delivered,hops,self(),key})
                 else
                     #Cast to the given nearest neighbour
-                    GenServer.cast(elem(nearest_node,0),{:route,key,hashOfNode,b,hops+1})
+                    #IO.inspect "Casting"
+                    GenServer.cast(elem(nearest_node,0),{:route,key,elem(nearest_node,1),b,hops+1})
                 end
             else
                 # Yes Nearest longest+1 prefix match found
                 # Send it to the given node with the incremented hop count
-                GenServer.cast(elem(nearest_neighbour,0),{:route,key,hashOfNode,b,hops+1})
+                #IO.inspect "Casting"
+                GenServer.cast(elem(nearest_neighbour,0),{:route,key,elem(nearest_neighbour,1),b,hops+1})
                 #IO.puts "Send"
 
             end
            
         end
-
 
         #Combine the leafset small and big with sorting ended
         {:noreply,state}

@@ -26,8 +26,8 @@ def handle_cast({:update_boss_state,numRequest,numNodes,list_of_nodes_with_pids}
 
 end
 
-def handle_cast({:delivered,hopcount},state) do
-     #IO.puts "total-requested= #{state[:total_request_received]} hopcount= #{state[:hop_count]}"
+def handle_cast({:delivered,hopcount,process,hash},state) do
+     #IO.puts "#{inspect process} #{inspect hash} total-requested= #{state[:total_request_received]} hopcount= #{state[:hop_count]}"
      #IO.puts "#{inspect state[:total_request_received]} #{inspect (state[:numRequest] * state[:numNodes])}"
 
      {_,state_hop_count}=Map.get_and_update(state,:hop_count, fn current_value -> {current_value,current_value+hopcount} end)
@@ -35,7 +35,9 @@ def handle_cast({:delivered,hopcount},state) do
      {_,state_total_request_received}=Map.get_and_update(state,:total_request_received, fn current_value -> {current_value,current_value+1} end)
      state=Map.merge(state,state_total_request_received)
 
-     if(state[:total_request_received]>=(state[:numRequest] * state[:numNodes])) do
+     if(state[:total_request_received]>=(state[:numRequest] * state[:numNodes]) 
+        or (0.8*state[:total_request_received])==(0.8*state[:numRequest] * state[:numNodes]) 
+        ) do
         # The average hop count print
         average_hop_count=state[:hop_count]/(state[:numRequest] * state[:numNodes])
         #IO.puts "#{inspect state[:hop_count]}"
@@ -86,6 +88,7 @@ end
         node_list_count = num_nodes
         process_id = elem(random_node,0)
         hash = elem(random_node,1)
+        #IO.inspect random_node
         GenServer.cast(process_id,{:receive_request_to_cast,node_id,count,node_list_count,process_id,hash,@b})
         send_to_node(list_of_nodes, num_nodes, counter)
         end
