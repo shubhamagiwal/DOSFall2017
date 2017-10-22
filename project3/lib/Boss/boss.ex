@@ -29,18 +29,18 @@ end
         build_topology(list_of_nodes_with_pids,numRequest, pct)
         a=kill_nodes(list_of_nodes_with_pids, nodes_to_kill, [])
         new_list = list_of_nodes_with_pids -- a
-        update_node_sets(new_list)
+        update_node_sets(new_list, numRequest)
         num_nodes = Enum.count(new_list)
         send_to_node(new_list, num_nodes, 0)
  end
 
- def update_node_sets(new_list) do
+ def update_node_sets(new_list, num_request) do
         Enum.each(Enum.with_index(new_list),fn(x)->
                 larger_leaf_set=Project3.Node.larger_leaf_set(new_list,elem(x,1),@b,[])
                 smaller_leaf_set=Project3.Node.smaller_leaf_set(new_list,elem(x,1),@b,[])
                 neighbor_set = Project3.Node.neighbor_set(new_list, elem(x,1), 0, [])
                 routing_table=Project3.Node.create_routing_table_for_a_node(@b,elem(elem(x,0),1),new_list)
-                GenServer.cast(elem(elem(x,0),0),{:updateLeafSet,larger_leaf_set,smaller_leaf_set,neighbor_set,routing_table})
+                GenServer.cast(elem(elem(x,0),0),{:updateLeafSet,larger_leaf_set,smaller_leaf_set,neighbor_set,routing_table,num_request})
          end)
  end
 
