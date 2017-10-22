@@ -6,7 +6,7 @@ use GenServer
     #Generate Node process
     def start(random_node_id,b) do
         hash=:crypto.hash(:sha, to_string(random_node_id)) |> Base.encode16 |> Convertat.from_base(16) |> Convertat.to_base(b+1)
-        hash=String.slice(hash,0..@nodeLength)
+        #hash=String.slice(hash,0..@nodeLength)
         #IO.puts "#{inspect random_node_id} - #{inspect hash}"
         {:ok,pid} = GenServer.start_link(__MODULE__,hash)
         {pid,hash,random_node_id}
@@ -49,7 +49,7 @@ use GenServer
         #Generate Key and cast again with count incremented
         #Generated the random key and cast
         key=:crypto.hash(:sha,Project3.LibFunctions.randomizer(10,true))|> Base.encode16 |> Convertat.from_base(16) |> Convertat.to_base(b+1)
-        key=String.slice(key,0..@nodeLength)
+        #key=String.slice(key,0..@nodeLength)
         #IO.puts "#{key} is the the key and #{hash} is the hash"
         GenServer.cast(self(),{:route,key,hash,b,0})
         #Generated the random key and cast ended 
