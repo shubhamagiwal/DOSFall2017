@@ -97,7 +97,7 @@ use GenServer
             if(elem(nearest_neighbour,2)==-1) do
                 # No Nearest longest+1 prefix match found
                 # Combine Leaf small set,right set and routing table set
-                combineSet=leafsets++get_routing_table_row(state[:routing_table],state[:number_rows],state[:number_columns],[],0,0)
+                combineSet=leafsets++get_routing_table_row(state[:routing_table],state[:number_rows],state[:number_columns],[],0,0)++state[:neighbor_set]
                 #IO.inspect combineSet
                 nearest_node=no_nearest_longestplus1_prefix_node(combineSet,key,hashOfNode,row)
                 #IO.puts "Nearest node for key #{inspect key} is #{inspect nearest_node} "
