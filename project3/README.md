@@ -9,12 +9,6 @@ We have also implemented the failure model where certain percentage of nodes can
 ##### Largest network of nodes
 The largest network that we ran our code on was for 5000 nodes and 10 requests for each peer.<br>
 
-##### To run the project3 commands
-1. Unzip the contents of the package and do `cd project3`<br>
-2. Run `mix deps.get` followed by `mix escript.build`<br>
-3. Run `./project3 {number_of_nodes} {number of requests}` number_of_nodes  and number_of_requests can be whole numbers.
-
-
 ##### To run the project3-bonus commands
 1. Unzip the contents of the package and do `cd project3`<br>
 2. Run `mix deps.get` followed by `mix escript.build`<br>
