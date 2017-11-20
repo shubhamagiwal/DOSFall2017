@@ -6,8 +6,8 @@ use GenServer
         name_of_node=String.to_atom("tweeter@user"<>to_string(id_tweeter))
         password=Project4Part1.LibFunctions.randomizer(8,true)
         {:ok,_} = GenServer.start_link(__MODULE__,password,name: name_of_node)
-        GenServer.cast(name_of_node,{:tweet,name_of_node})
-        {name_of_node}
+        GenServer.cast(Boss_Server,{:created_user,name_of_node})
+        name_of_node
     end
 
     #Server Side Implementation
