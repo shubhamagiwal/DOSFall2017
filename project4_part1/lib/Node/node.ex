@@ -16,8 +16,14 @@ use GenServer
     end
 
     def handle_cast({:check},state)do
-        IO.puts "I am here in #{inspect self()} #{inspect state[:password]}"
+        #IO.puts "I am here in #{inspect self()} #{inspect state[:password]}"
         {:noreply,state}
+    end
+
+    def handle_cast({:receive_list,list, name_of_node}, state) do
+        IO.puts "Hello World #{inspect name_of_node} #{inspect list}"
+        #IO.inspect list 
+        {:noreply, state}
     end
 
 end
