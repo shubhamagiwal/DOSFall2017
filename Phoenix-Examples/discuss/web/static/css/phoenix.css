@@ -17,21 +17,22 @@ body, form, ul, table {
 /* Phoenix flash messages */
 .alert:empty { display: none; }
 
+/* Phoenix inline forms in links and buttons */
+form.link, form.button {
+  display: inline;
+}
+
 /* Custom page header */
 .header {
   border-bottom: 1px solid #e5e5e5;
 }
-.header ul {
-  margin-top: 0;
-}
 .logo {
-  width: 200px;
-  height: 27px;
-  background-size: 100%;
+  width: 519px;
+  height: 71px;
   display: inline-block;
-  margin-top: 0.5em;
   margin-bottom: 1em;
   background-image: url("/images/phoenix.png");
+  background-size: 519px 71px;
 }
 
 /* Everything but the jumbotron gets side spacing for mobile first views */
@@ -70,18 +71,9 @@ body, form, ul, table {
     padding-right: 0;
     padding-left: 0;
   }
-  .logo {
-    width: 519px;
-    height: 71px;
-    margin-top: 0;
-    background-size: 519px 71px;
-  }
   /* Space out the masthead */
   .header {
     margin-bottom: 30px;
-  }
-  .header ul {
-    margin-top: 1em;
   }
   /* Remove the bottom border on the jumbotron for visual effect */
   .jumbotron {

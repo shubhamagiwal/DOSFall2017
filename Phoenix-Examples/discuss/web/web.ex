@@ -1,7 +1,7 @@
 defmodule Discuss.Web do
   @moduledoc """
-  The entrypoint for defining your web interface, such
-  as controllers, views, channels and so on.
+  A module that keeps using definitions for controllers,
+  views and so on.
 
   This can be used in your application as:
 
@@ -13,8 +13,7 @@ defmodule Discuss.Web do
   on imports, uses and aliases.
 
   Do NOT define functions inside the quoted expressions
-  below. Instead, define any helper function in modules
-  and import those modules here.
+  below.
   """
 
   def model do
@@ -45,7 +44,7 @@ defmodule Discuss.Web do
       use Phoenix.View, root: "web/templates"
 
       # Import convenience functions from controllers
-      import Phoenix.Controller, only: [get_flash: 2, view_module: 1]
+      import Phoenix.Controller, only: [get_csrf_token: 0, get_flash: 2, view_module: 1]
 
       # Use all HTML functionality (forms, tags, etc)
       use Phoenix.HTML
