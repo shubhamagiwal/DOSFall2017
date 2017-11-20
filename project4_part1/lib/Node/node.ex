@@ -5,8 +5,8 @@ use GenServer
     def start(id_tweeter) do
         name_of_node=String.to_atom("tweeter@user"<>to_string(id_tweeter))
         password=Project4Part1.LibFunctions.randomizer(8,true)
-        {:ok,pid} = GenServer.start_link(__MODULE__,password,name: name_of_node)
-        {pid}
+        {:ok,_} = GenServer.start_link(__MODULE__,password,name: name_of_node)
+        {name_of_node}
     end
 
     #Server Side Implementation
@@ -16,7 +16,7 @@ use GenServer
     end
 
     def handle_cast({:check},state)do
-        IO.puts "I am here in #{inspect self} "
+        IO.puts "I am here in #{inspect self()} #{inspect state[:password]}"
         {:noreply,state}
     end
 
