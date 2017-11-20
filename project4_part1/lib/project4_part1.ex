@@ -1,18 +1,17 @@
 defmodule Project4Part1 do
-  @moduledoc """
-  Documentation for Project4Part1.
-  """
+  def main(args \\ []) do
 
-  @doc """
-  Hello world.
+        if(length(args)==1) do
+            #Create the server Processs
+            Project4Part1.LibFunctions.get_ip_address(args)|>Project4Part1.Boss.start_boss
+            loop()
+        else
+            IO.puts "Enter the arguments as mentioned in the documentation"
+        end 
+end
 
-  ## Examples
+def loop() do
+   loop()
+end
 
-      iex> Project4Part1.hello
-      :world
-
-  """
-  def hello do
-    :world
-  end
 end
