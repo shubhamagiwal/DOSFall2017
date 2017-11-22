@@ -34,6 +34,12 @@ use GenServer
         {:noreply,state}
     end
 
+     def handle_cast({:retweet,server_node_name,client_node_name,hashTag,tweets,reference,name_of_user},state)do
+        #:nodes => [],:hashTag => [],:tweets=>[],:reference=>[],:tweet_by_user => [],:users=>[]
+        GenServer.cast({Boss_Server,client_node_name},{:got_retweet,client_node_name,hashTag,tweets,reference,name_of_user})
+        {:noreply,state}
+     end
+
      def handle_cast({:login},state)do
           {_,state_isLoggedIn}=Map.get_and_update(state,:is_logged_in, fn current_value -> {current_value,true} end)
           state=Map.merge(state,state_isLoggedIn)

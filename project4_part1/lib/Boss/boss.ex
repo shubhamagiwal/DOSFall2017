@@ -68,6 +68,25 @@ def handle_cast({:add_subscription_for_given_client_user,random_node_choose,node
          {:noreply,state}
 end
 
+def handle_cast({:got_retweet,client_node_name,hashTag,tweets,reference,name_of_user},state) do
+
+        # {:ok,%{:nodes => [],:hashTag => [],:tweets=>[],:reference=>[],:tweet_by_user => [],:users=>[]}}
+
+        {_,state_random_node}=Map.get_and_update(state,:nodes, fn current_value -> {current_value,current_value++[client_node_name]} end)
+        state=Map.merge(state,state_random_node)
+
+        {_,state_random_hashTag}=Map.get_and_update(state,:hashTag, fn current_value -> {current_value,current_value++[hashTag]} end)
+        state=Map.merge(state,state_random_hashTag)
+        
+        {_,state_random_tweet}=Map.get_and_update(state,:tweets, fn current_value -> {current_value,current_value++[tweets]} end)
+        state=Map.merge(state,state_random_tweet)
+
+        {_,state_random_tweet_user}=Map.get_and_update(state,:tweet_by_user, fn current_value -> {current_value,current_value++[name_of_user]} end)
+        state=Map.merge(state,state_random_tweet_user)
+
+        {:noreply,state}
+end
+
 def handle_cast({:add_is_subscribed_for_given_client,random_node_choose,node},state)do
          # process_map=%{:node_client => nil, :hashTags => [], :password => nil, :has_subscribed_to => [], :is_subscribed_by => [],:name_node => nil, :id => nil}
          client_name=elem(random_node_choose,0)
