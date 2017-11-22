@@ -41,55 +41,21 @@ end
 
 
 def handle_cast({:add_random_subscriptions,subs,user,random_list,index},state)do
-    
-        #   process_map=%{:name_node => nil, :password => nil, :is_fresh_user=>nil,:is_logged_in => nil, :tweets =>[] , :subscriptions => [], :subscribees => [], :hashTags => []  }
-    
-        #   {_,state_name_node}=Map.get_and_update(process_map,:name_node, fn current_value -> {current_value,user} end)
-        #   process_map=Map.merge(process_map,state_name_node)
-    
-        #   {_,state_password}=Map.get_and_update(process_map,:password, fn current_value -> {current_value,password} end)
-        #   process_map=Map.merge(process_map,state_password)
-    
-        #   {_,state_tweets}=Map.get_and_update(process_map,:tweets, fn current_value -> {current_value,[]} end)
-        #   process_map=Map.merge(process_map,state_tweets)
+        random_list=random_list -- [[]]
+        {_,state_subscriptions}=Map.get_and_update( Enum.at(state[:tweet_user],index), :subscriptions, fn current_value -> {current_value, current_value ++ random_list} end)
+        #IO.puts "state_Subscriptions #{inspect state_subscriptions}"
+        map=Map.merge(Enum.at(state[:tweet_user],index), state_subscriptions)
+        #IO.puts "Map here: #{inspect map}"
 
-          
-    
-        #   {_,state_subscriptions}=Map.get_and_update(process_map,:subscriptions, fn current_value -> {current_value,current_value ++ random_list} end)
-        #   process_map=Map.merge(process_map,state_subscriptions)
-        #   {_,state_subscriptions}=Map.get_and_update(process_map,:subscriptions, fn current_value -> {current_value,current_value -- [[]]} end)
-        #   process_map=Map.merge(process_map,state_subscriptions)
-    
-        # #   {_,state_subscribees}=Map.get_and_update(process_map,:subscribees, fn current_value -> {current_value,[]} end)
-        # #   process_map=Map.merge(process_map,state_subscribees)
-    
-        # #   {_,state_hashtags}=Map.get_and_update(process_map,:hashTags, fn current_value -> {current_value,[]} end)
-        # #   process_map=Map.merge(process_map,state_hashtags)
-        #   #IO.puts "I am here"
-        #   {_,state_random_tweet}=Map.get_and_update(state,:tweet_user, fn current_value -> {current_value,current_value++[process_map]} end)
-        #   state=Map.merge(state,state_random_tweet)
-    
-        #   {_,state_random_name_node}=Map.get_and_update(state,:name_node, fn current_value -> {current_value,current_value++[user]} end)
-        #   state=Map.merge(state,state_random_name_node)
-          
+        {_,state_update_tweeter}=Map.get_and_update(state,:tweet_user, fn current_value -> {current_value,current_value++[map]} end)
+        state=Map.merge(state,state_update_tweeter)
+        IO.puts "User #{inspect user}"
+        IO.puts "subs #{inspect subs}"
+        IO.puts "-----------------------------------------------------------------"
+        IO.inspect state[:tweet_user]
+        {:noreply,state}
+end
 
-
-          IO.puts "User ---------------------> #{inspect user}" 
-          IO.puts "SUBS ---------------------> #{inspect subs}" 
-          IO.puts "Index ---------------------> #{inspect index}" 
-          IO.puts "random list ---------------> #{inspect random_list}"
-          IO.inspect Enum.at(state[:tweet_user],index)
-          IO.puts "Map before update:  #{inspect Map.get(Enum.at(state[:tweet_user],index),:subscriptions)}"
-          {_,state_subscriptions}=Map.get_and_update( Enum.at(state[:tweet_user],index), :subscriptions, fn current_value -> {current_value, current_value ++ random_list} end)
-          IO.puts "state_Subscriptions #{inspect state_subscriptions}"
-          Map.merge(Enum.at(state[:tweet_user],index), state_subscriptions)
-          IO.puts "Map after update:  #{inspect Map.get(Enum.at(state[:tweet_user],index),:subscriptions)}"
-          #state = Map.merge(Enum.at(state[:tweet_user],index) ,state_subscriptions); 
-          #IO.inspect user
-          #IO.inspect Map.get(state[:tweet_user], :subscribers)
-          IO.inspect state[:tweet_user]
-          {:noreply,state}
-    end
 
 def handle_cast({:got_tweet,random_tweet,random_hashTag,name_node,tweeter_id},state)do
 
@@ -180,27 +146,33 @@ end
             list = list -- [subs]    
             if(!Enum.member?(random_list, subs)) do
                 random_list = random_list ++ [subs]
-                #list = state[:tweet_user]
-                # IO.inspect user
-                # IO.inspect random_list
-                # IO.puts "User"
-                # IO.inspect user
-                # IO.puts "subs"
-                # IO.inspect subs
-                # IO.inspect list
-                # IO.puts "Subs: #{inspect String.length(Atom.to_string(subs))}"
-                # len = String.length(Atom.to_string(subs))
-                # if(len == 13) do
-                #      IO.puts String.slice(Atom.to_string(subs), len-1)
-                # end
-                # #GenServer.cast(subs, {:users_subscribers,user})
-                GenServer.cast(Boss_Server, {:add_random_subscriptions,subs,user,random_list,index}) 
-                # When you add a random subscription also update the subscriber 
+                #GenServer.cast(Boss_Server, {:add_random_subscriptions,subs,user,random_list,index}) 
+                #IO.puts "1-----------------------------------------------------------------------------------"                
+                #GenServer.cast(Boss_Server, {:add_subscribee,subs,user,random_list})
+                #IO.puts "2-----------------------------------------------------------------------------------"  
                 start=start+1
             end
             random_list = random_subscriptions(list, start, user, random_list,index)
         end
+        GenServer.cast(Boss_Server, {:add_random_subscriptions,subs,user,random_list,index}) 
         random_list  
+  end
+
+  def handle_cast({:add_subscribee,subs,user,random_list},state) do
+       IO.inspect state[:tweet_user]
+       IO.puts "user #{inspect user}"
+       IO.puts "subs #{inspect subs}"
+       IO.puts "-----------------------------------------------------------------------------------"
+      #{_,state_subscribees}=Map.get_and_update()
+      #IO.puts "Map before update:  #{inspect Map.get(Enum.at(state[:tweet_user],(Enum.at(subs,0)-1)),:subscribees)}"
+      {_,state_subscribees}=Map.get_and_update( Enum.at(state[:tweet_user],(Enum.at(subs,0)-1)), :subscribees, fn current_value -> {current_value, current_value ++ [user]} end)
+      #IO.puts "state_subscribees #{inspect state_subscribees}"
+      map=Map.merge(Enum.at(state[:tweet_user],(Enum.at(subs,0)-1)), state_subscribees)
+      #IO.inspect "Check map here :::   :::: :: #{inspect map}"
+      {_,state_update_tweeter}=Map.get_and_update(state,:tweet_user, fn current_value -> {current_value,current_value++[map]} end)
+      state=Map.merge(state,state_update_tweeter)
+
+      {:noreply,state}
   end
     
     
