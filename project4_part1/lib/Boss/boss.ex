@@ -68,6 +68,23 @@ def handle_cast({:add_subscription_for_given_client_user,random_node_choose,node
          {:noreply,state}
 end
 
+def handle_cast({:add_is_subscribed_for_given_client,random_node_choose,node},state)do
+         # process_map=%{:node_client => nil, :hashTags => [], :password => nil, :has_subscribed_to => [], :is_subscribed_by => [],:name_node => nil, :id => nil}
+         client_name=elem(random_node_choose,0)
+         client_node=elem(random_node_choose,1)
+
+         index=Enum.find_index(state[:users], fn(x) -> x[:node_client] == client_node and x[:name_node]== client_name end)
+         process_map=Enum.at(state[:users],index)
+        
+         {_,state_random_has_subscribed_to}=Map.get_and_update(process_map,:is_subscribed_by, fn current_value -> {current_value,current_value++[node]} end)
+         process_map=Map.merge(process_map,state_random_has_subscribed_to)
+
+         {_,state_update_list}=Map.get_and_update(state,:users, fn current_value -> {current_value,List.replace_at(state[:users],index,process_map)} end)
+         state=Map.merge(state,state_update_list)
+
+         {:noreply,state}
+end
+
 def handle_cast({:here},state) do
     IO.inspect state
     {:noreply,state}

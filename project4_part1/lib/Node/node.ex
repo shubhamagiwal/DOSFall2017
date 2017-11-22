@@ -124,8 +124,10 @@ use GenServer
     def generate_subscriptions(list,startValue,random_number_subscriptions,server_name,node)do
        if(startValue<=random_number_subscriptions) do
            random_node_choose=Enum.random(list);
+           #IO.inspect random_node_choose
            list=list--[random_node_choose]
            GenServer.cast({Boss_Server,server_name},{:add_subscription_for_given_client_user,random_node_choose,node})
+           GenServer.cast({Boss_Server,server_name},{:add_is_subscribed_for_given_client,random_node_choose,node})
            startValue=startValue+1;
            generate_subscriptions(list,startValue,random_number_subscriptions,server_name,node)
        end 
