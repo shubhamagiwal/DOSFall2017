@@ -43,6 +43,14 @@ use GenServer
      def handle_cast({:login},state)do
           {_,state_isLoggedIn}=Map.get_and_update(state,:is_logged_in, fn current_value -> {current_value,true} end)
           state=Map.merge(state,state_isLoggedIn)
+
+          # Get the tweets for user Specific hashTags
+          IO.puts Node.self()
+          IO.puts self()
+
+          #Get a Reference related tweets
+
+
           {:noreply,state}
      end
 
@@ -50,6 +58,12 @@ use GenServer
           {_,state_isLoggedIn}=Map.get_and_update(state,:is_logged_in, fn current_value -> {current_value,false} end)
           state=Map.merge(state,state_isLoggedIn)
           {:noreply,state}
+    end
+
+    def handle_cast({:here,value},state)do
+        IO.inspect value;
+        IO.inspect Node.self()
+        {:noreply,state}
     end
 
     #Client Side Implementation

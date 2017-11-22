@@ -127,8 +127,60 @@ end
 
 def handle_cast({:here},state) do
     IO.inspect Enum.count(state[:hashTag])
+    
+    #Login a random user as of now
+    login_query_for_client(state)
     {:noreply,state}
 end
+
+def login_query_for_client(state)do
+     userTuple=Enum.at(state[:users],0)
+    
+     tweets=state[:tweets]
+     hashTag=state[:hashTag]
+     reference=state[:reference]
+     tweet_by_user=state[:tweet_by_user]
+     user_preferred_hashtags=userTuple[:hashTags]
+     user_has_subscibed_to_list=userTuple[:has_subscribed_to]
+     nodes_tweeting=state[:nodes]
+
+     IO.inspect state
+     IO.inspect user_has_subscibed_to_list
+
+     # User Preferred Tag Tweets
+     hashTags_indices_for_user_preferred_tags=Enum.filter(Enum.map(user_preferred_hashtags,fn(x)-> Enum.find_index(hashTag,fn(y) -> x==y  end)  end), & !is_nil(&1))
+     if(length(hashTags_indices_for_user_preferred_tags)>0) do
+        tweets_based_user_preferred_hashTags=Enum.map(hashTags_indices_for_user_preferred_tags,fn(x)-> to_string(Enum.at(tweets,x))<>" By user "<>to_string(Enum.at(tweet_by_user,x)) end) 
+        GenServer.cast({Map.get(userTuple,:name_node),Map.get(userTuple,:node_client)},{:here,tweets_based_user_preferred_hashTags})
+     else
+        tweets_based_user_preferred_hashTags=[]
+     end 
+
+     # User Referred in Tweets
+     references_indices_where_user_is_mentioned=Enum.filter(Enum.map(Enum.with_index(reference),fn({x,i})-> 
+                if(x==Map.get(userTuple,:name_node)) do i end end),& !is_nil(&1))
+
+      if(length(references_indices_where_user_is_mentioned)>0) do
+        tweets_based_references_for_given_user=Enum.map(references_indices_where_user_is_mentioned,fn(x)-> to_string(Enum.at(tweets,x))<>" By user "<>to_string(Enum.at(tweet_by_user,x)) end) 
+        GenServer.cast({Map.get(userTuple,:name_node),Map.get(userTuple,:node_client)},{:here,tweets_based_references_for_given_user})
+      else
+        tweets_based_references_for_given_user=[]
+      end
+
+     # User has Subscribed to Tweets
+       nodes_id_for_tweets=Enum.map(Enum.filter(Enum.with_index(Enum.map(Enum.with_index(tweet_by_user),fn({x,i})-> Enum.find_index(user_has_subscibed_to_list,fn(y)-> x==elem(y,0) end) end)),fn({x,i})-> x end),fn({x,i})-> i end)
+       
+       if(length(nodes_id_for_tweets)>0) do
+        tweets_based_has_subscribed_to_for_given_user=Enum.map(nodes_id_for_tweets,fn(x)-> to_string(Enum.at(tweets,x))<>" By user "<>to_string(Enum.at(tweet_by_user,x)) end) 
+        GenServer.cast({Map.get(userTuple,:name_node),Map.get(userTuple,:node_client)},{:here,tweets_based_has_subscribed_to_for_given_user})
+       else
+        tweets_based_has_subscribed_to_for_given_user=[]
+       end
+
+
+     IO.inspect nodes_id_for_tweets
+
+end 
 
  def start_boss(server_tuple) do
         serverName=String.to_atom(to_string("server@")<>elem(server_tuple,0))
