@@ -2,7 +2,7 @@ defmodule Project4Part1.Node do
 use GenServer
 
 @numTweets 2
-
+@numHashTags 10
 #Server Side Implementation
     def init(_) do  
         {:ok,%{:is_logged_in=>true,:is_fresh_user=>true}}
@@ -88,6 +88,8 @@ use GenServer
         l= spawn_nodes(numNode,1,[],server_name,elem(tuple,0))
         #IO.inspect l
         random_subscriptions(l,1,server_name)
+        random_hashTags_for_a_given_user(server_name,@numHashTags,l,0)
+        Process.sleep(1_000)
         GenServer.cast({Boss_Server,server_name},{:here})
 
     end
@@ -137,6 +139,16 @@ use GenServer
            startValue=startValue+1;
            generate_subscriptions(list,startValue,random_number_subscriptions,server_name,node)
        end 
+    end
+
+    def random_hashTags_for_a_given_user(servername,numHashTags,list,start) do
+        
+        if(start<=length(list)) do
+            element=Enum.at(list,start-1);
+            GenServer.cast({Boss_Server,servername},{:assign_hashTags_to_user,numHashTags,element})
+            start=start+1
+            random_hashTags_for_a_given_user(servername, numHashTags,list,start) 
+        end
     end
 
     
