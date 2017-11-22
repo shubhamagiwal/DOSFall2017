@@ -3,7 +3,8 @@ defmodule Project4Part1.LibFunctions do
 # get the IP address of the machine
      def get_ip_address(args) do
         {:ok,[{ipadd1,_,_},{_,_,_}]}=:inet.getif()
-        ipaddress= ipadd1|> Tuple.to_list |> Enum.join(".") 
+        ipaddress= ipadd1|> Tuple.to_list |> Enum.join(".")
+        IO.inspect ipaddress 
         {ipaddress,args}
     end
 
