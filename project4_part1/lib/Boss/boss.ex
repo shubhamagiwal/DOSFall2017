@@ -3,7 +3,7 @@ use GenServer
 
 
 def init(:ok) do
-        {:ok,%{:nodes => [],:hashTag => [],:tweets=>[],:reference=>[],:tweet_by_user => [],:users=>[]}}
+        {:ok,%{:nodes => [],:hashTag => [],:tweets=>[],:reference=>[],:tweet_by_user => [],:users=>[],:reference_node=>[]}}
 end
 
 def handle_cast({:created_user,node_client,password,name_node,id},state)do
@@ -28,10 +28,9 @@ def handle_cast({:created_user,node_client,password,name_node,id},state)do
       {:noreply,state}
 end
 
-def handle_cast({:got_tweet,random_tweet,random_hashTag,name_of_user,client_node_name,tweeter_id,reference},state)do
+def handle_cast({:got_tweet,random_tweet,random_hashTag,name_of_user,client_node_name,reference,isFreshUser},state)do
 
         # tweeter_user_state=Enum.at(state[:tweet_user],tweeter_id-1)
-
         {_,state_random_tweet}=Map.get_and_update(state,:tweets, fn current_value -> {current_value,current_value++[random_tweet]} end)
         state=Map.merge(state,state_random_tweet)
 
@@ -47,8 +46,39 @@ def handle_cast({:got_tweet,random_tweet,random_hashTag,name_of_user,client_node
         {_,state_random_tweeted_user}=Map.get_and_update(state,:tweet_by_user, fn current_value -> {current_value,current_value++[name_of_user]} end)
         state=Map.merge(state,state_random_tweeted_user)
 
+        {_,state_random_tweeted_user}=Map.get_and_update(state,:reference_node, fn current_value -> {current_value,current_value++[nil]} end)
+        state=Map.merge(state,state_random_tweeted_user)
+
         #IO.inspect state
+
+        client_name=name_of_user
+        client_node=client_node_name
+
+
+        # Find the is subscribed user for the given client
+        # index=Enum.find_index(state[:users], fn(x) -> x[:node_client] == client_node and x[:name_node]== client_name end)
+        # process_map=Enum.at(state[:users],index)
+        # is_subscribed_by=process_map[:is_subscribed_by]
+
+        #Format of the output
+        #[tweeter@user1: :"localhost-20@10.3.6.63",
+        # tweeter@user2: :"localhost-20@10.3.6.63",
+        # tweeter@user3: :"localhost-20@10.3.6.63",
+        # tweeter@user6: :"localhost-20@10.3.6.63",
+        # tweeter@user9: :"localhost-20@10.3.6.63"]
+        if(isFreshUser!=true) do
+           is_subscribed_by=get_a_list_of_is_subscribed_by_for_given_client(client_name,client_node,state)
+           Enum.each(is_subscribed_by,fn({client_name_x,client_node_name_x}) -> GenServer.cast({client_name_x,client_node_name_x},{:got_a_tweet,random_tweet,random_hashTag,name_of_user,client_node_name,reference,client_name_x,client_node_name_x})  end)
+        end 
+
         {:noreply,state}
+end
+
+def get_a_list_of_is_subscribed_by_for_given_client(client_name,client_node,state) do
+        index=Enum.find_index(state[:users], fn(x) -> x[:node_client] == client_node and x[:name_node]== client_name end)
+        process_map=Enum.at(state[:users],index)
+        is_subscribed_by=process_map[:is_subscribed_by]
+        is_subscribed_by
 end
 
 def handle_cast({:add_subscription_for_given_client_user,random_node_choose,node},state)do
@@ -68,7 +98,7 @@ def handle_cast({:add_subscription_for_given_client_user,random_node_choose,node
          {:noreply,state}
 end
 
-def handle_cast({:got_retweet,client_node_name,hashTag,tweets,reference,name_of_user},state) do
+def handle_cast({:got_retweet,client_node_name,name_of_user,tweet,hashTag,reference,reference_node},state) do
 
         # {:ok,%{:nodes => [],:hashTag => [],:tweets=>[],:reference=>[],:tweet_by_user => [],:users=>[]}}
 
@@ -78,11 +108,62 @@ def handle_cast({:got_retweet,client_node_name,hashTag,tweets,reference,name_of_
         {_,state_random_hashTag}=Map.get_and_update(state,:hashTag, fn current_value -> {current_value,current_value++[hashTag]} end)
         state=Map.merge(state,state_random_hashTag)
         
-        {_,state_random_tweet}=Map.get_and_update(state,:tweets, fn current_value -> {current_value,current_value++[tweets]} end)
+        {_,state_random_tweet}=Map.get_and_update(state,:tweets, fn current_value -> {current_value,current_value++[tweet]} end)
         state=Map.merge(state,state_random_tweet)
 
         {_,state_random_tweet_user}=Map.get_and_update(state,:tweet_by_user, fn current_value -> {current_value,current_value++[name_of_user]} end)
         state=Map.merge(state,state_random_tweet_user)
+
+        {_,state_random_tweet_user}=Map.get_and_update(state,:reference, fn current_value -> {current_value,current_value++[reference]} end)
+        state=Map.merge(state,state_random_tweet_user)
+
+        {_,state_random_tweet_user}=Map.get_and_update(state,:reference_node, fn current_value -> {current_value,current_value++[reference_node]} end)
+        state=Map.merge(state,state_random_tweet_user)
+
+        client_name=name_of_user
+        client_node=client_node_name
+
+        #Get its subscribed user and send the given tweet 
+        #random_tweet,random_hashtag,name_of_user,client_node_name,reference,reference_node
+        #client_node_name,name_of_user,tweet,hashTag,reference,reference_node
+        #client_node_name,name_of_user
+        is_subscribed_by=get_a_list_of_is_subscribed_by_for_given_client(client_name,client_node,state)
+        Enum.each(is_subscribed_by,fn({client_name_x,client_node_name_x}) -> GenServer.cast({client_name_x,client_node_name_x},{:retweet,tweet,hashTag,client_name_x,client_node_name_x,nil,nil,client_node_name,name_of_user})  end)
+
+        {:noreply,state}
+end
+
+def handle_cast({:got_mention_tweet,client_node_name,name_of_user,tweet,hashTag,reference,reference_node},state) do
+
+        # {:ok,%{:nodes => [],:hashTag => [],:tweets=>[],:reference=>[],:tweet_by_user => [],:users=>[]}}
+
+        {_,state_random_node}=Map.get_and_update(state,:nodes, fn current_value -> {current_value,current_value++[client_node_name]} end)
+        state=Map.merge(state,state_random_node)
+
+        {_,state_random_hashTag}=Map.get_and_update(state,:hashTag, fn current_value -> {current_value,current_value++[hashTag]} end)
+        state=Map.merge(state,state_random_hashTag)
+        
+        {_,state_random_tweet}=Map.get_and_update(state,:tweets, fn current_value -> {current_value,current_value++[tweet]} end)
+        state=Map.merge(state,state_random_tweet)
+
+        {_,state_random_tweet_user}=Map.get_and_update(state,:tweet_by_user, fn current_value -> {current_value,current_value++[name_of_user]} end)
+        state=Map.merge(state,state_random_tweet_user)
+
+        {_,state_random_tweet_user}=Map.get_and_update(state,:reference, fn current_value -> {current_value,current_value++[reference]} end)
+        state=Map.merge(state,state_random_tweet_user)
+
+        {_,state_random_tweet_user}=Map.get_and_update(state,:reference_node, fn current_value -> {current_value,current_value++[reference_node]} end)
+        state=Map.merge(state,state_random_tweet_user)
+
+        client_name=name_of_user
+        client_node=client_node_name
+
+        #Get its subscribed user and send the given tweet
+        is_subscribed_by=get_a_list_of_is_subscribed_by_for_given_client(client_name,client_node,state)
+        Enum.each(is_subscribed_by,fn({client_name_x,client_node_name_x}) -> GenServer.cast({client_name_x,client_node_name_x},{:got_a_tweet,tweet,hashTag,name_of_user,client_node_name,reference,client_name_x,client_node_name_x})  end)
+
+        #Send the mention tweet to user to the reference
+        GenServer.cast({reference,reference_node},{:got_a_tweet_with_mention,reference,reference_node,name_of_user,client_node_name,tweet,hashTag})
 
         {:noreply,state}
 end
@@ -125,16 +206,58 @@ def handle_cast({:assign_hashTags_to_user,numHashTags,element}, state) do
 
 end
 
-def handle_cast({:here},state) do
-    IO.inspect Enum.count(state[:hashTag])
+def handle_call({:get_random_tweet_for_mention,client_name,client_node}, _from, state) do
+        # {:ok,%{:nodes => [],:hashTag => [],:tweets=>[],:reference=>[],:tweet_by_user => [],:users=>[],:reference_node=>[]}}
+        #client_tweet_ids_array=Enum.filter(Enum.with_index(Enum.map(Enum.map(Enum.with_index(state[:tweets]),fn({_,i}) ->
+        #        if(    Enum.at(state[:nodes],i)== client_node 
+        #           and Enum.at(state[:tweet_by_user],i)== client_name 
+        #            and Enum.at(state[:reference_node],i)== nil ) do
+        #                i
+        #        end end),fn(x)-> is_nil(x) end)), fn({x,i}) -> if(x==false) do i end end)
+
+        #random_tweet_id_for_given_user=elem(Enum.random(client_tweet_ids_array),1)
+
+        #Tweet details
+        random_tweet_text=Project4Part1.LibFunctions.randomizer(32,:downcase)
+        random_hashTag="#"<>Project4Part1.LibFunctions.randomizer(8,true)
+        
+        #Take a random user not the same user for retweeting
+        #process_map=%{:node_client => nil, :hashTags => [], :password => nil, :has_subscribed_to => [], :is_subscribed_by => [],:name_node => nil, :id => nil}
+
+        user_array_ids=Enum.filter(Enum.map(Enum.with_index(state[:users]),fn({x,i}) ->
+                if(x[:name_node]!= client_name ) do
+                        i
+                end end), & !is_nil(&1))
+        
+        random_user_id_for_given_user=Enum.random(user_array_ids)
+        random_user_map_from_id=Enum.at(state[:users],random_user_id_for_given_user)
+
+        node=client_node
+        hashTag=random_hashTag
+        tweet=random_tweet_text
+        tweet_by_user=client_name
+        reference=random_user_map_from_id[:name_node]
+        reference_node=random_user_map_from_id[:node_client]
+
+        {:reply,{node,hashTag,tweet,tweet_by_user,reference,reference_node},state}
+end
+
+
+
+def handle_cast({:query,clientNode,clientName},state) do
+    list=Enum.filter(Enum.with_index(state[:users]), fn({x,i}) -> if(x[:node_client]==clientNode and x[:name_node]==clientName) do  i  end end)
+    IO.inspect clientNode
+    IO.inspect clientName
+    IO.inspect list
     
-    #Login a random user as of now
-    login_query_for_client(state)
+    if(length(list)>0) do
+        login_query_for_client(state,elem(Enum.at(list,0),1))   
+    end
     {:noreply,state}
 end
 
-def login_query_for_client(state)do
-     userTuple=Enum.at(state[:users],0)
+def login_query_for_client(state,index)do
+     userTuple=Enum.at(state[:users],index)
     
      tweets=state[:tweets]
      hashTag=state[:hashTag]
@@ -143,9 +266,6 @@ def login_query_for_client(state)do
      user_preferred_hashtags=userTuple[:hashTags]
      user_has_subscibed_to_list=userTuple[:has_subscribed_to]
      nodes_tweeting=state[:nodes]
-
-     IO.inspect state
-     IO.inspect user_has_subscibed_to_list
 
      # User Preferred Tag Tweets
      hashTags_indices_for_user_preferred_tags=Enum.filter(Enum.map(user_preferred_hashtags,fn(x)-> Enum.find_index(hashTag,fn(y) -> x==y  end)  end), & !is_nil(&1))
@@ -178,7 +298,7 @@ def login_query_for_client(state)do
        end
 
 
-     IO.inspect nodes_id_for_tweets
+     #IO.inspect nodes_id_for_tweets
 
 end 
 
