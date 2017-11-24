@@ -246,9 +246,6 @@ end
 
 def handle_cast({:query,clientNode,clientName},state) do
     list=Enum.filter(Enum.with_index(state[:users]), fn({x,i}) -> if(x[:node_client]==clientNode and x[:name_node]==clientName) do  i  end end)
-    IO.inspect clientNode
-    IO.inspect clientName
-    IO.inspect list
     
     if(length(list)>0) do
         login_query_for_client(state,elem(Enum.at(list,0),1))   
@@ -270,8 +267,12 @@ def login_query_for_client(state,index)do
      # User Preferred Tag Tweets
      hashTags_indices_for_user_preferred_tags=Enum.filter(Enum.map(user_preferred_hashtags,fn(x)-> Enum.find_index(hashTag,fn(y) -> x==y  end)  end), & !is_nil(&1))
      if(length(hashTags_indices_for_user_preferred_tags)>0) do
-        tweets_based_user_preferred_hashTags=Enum.map(hashTags_indices_for_user_preferred_tags,fn(x)-> to_string(Enum.at(tweets,x))<>" By user "<>to_string(Enum.at(tweet_by_user,x)) end) 
-        GenServer.cast({Map.get(userTuple,:name_node),Map.get(userTuple,:node_client)},{:here,tweets_based_user_preferred_hashTags})
+        #tweets_based_user_preferred_hashTags=Enum.map(hashTags_indices_for_user_preferred_tags,fn(x)-> to_string(Enum.at(tweets,x))<>" By user "<>to_string(Enum.at(tweet_by_user,x)) end) 
+        #random_tweet,random_hashtag,name_of_user,client_node_name,_,client_name_x,client_node_name_x
+        Enum.each(hashTags_indices_for_user_preferred_tags,fn(x)->
+                GenServer.cast({Map.get(userTuple,:name_node),Map.get(userTuple,:node_client)},{:got_a_tweet,Enum.at(tweets,x),Enum.at(hashTag,x),Enum.at(tweet_by_user,x),Enum.at(nodes_tweeting,x),nil,Map.get(userTuple,:name_node),Map.get(userTuple,:node_client)})
+        end)
+        #GenServer.cast({Map.get(userTuple,:name_node),Map.get(userTuple,:node_client)},{:here,tweets_based_user_preferred_hashTags})
      else
         tweets_based_user_preferred_hashTags=[]
      end 
@@ -281,8 +282,11 @@ def login_query_for_client(state,index)do
                 if(x==Map.get(userTuple,:name_node)) do i end end),& !is_nil(&1))
 
       if(length(references_indices_where_user_is_mentioned)>0) do
-        tweets_based_references_for_given_user=Enum.map(references_indices_where_user_is_mentioned,fn(x)-> to_string(Enum.at(tweets,x))<>" By user "<>to_string(Enum.at(tweet_by_user,x)) end) 
-        GenServer.cast({Map.get(userTuple,:name_node),Map.get(userTuple,:node_client)},{:here,tweets_based_references_for_given_user})
+        #tweets_based_references_for_given_user=Enum.map(references_indices_where_user_is_mentioned,fn(x)-> to_string(Enum.at(tweets,x))<>" By user "<>to_string(Enum.at(tweet_by_user,x)) end) 
+        #GenServer.cast({Map.get(userTuple,:name_node),Map.get(userTuple,:node_client)},{:here,tweets_based_references_for_given_user})
+        Enum.each(references_indices_where_user_is_mentioned,fn(x)->
+                GenServer.cast({Map.get(userTuple,:name_node),Map.get(userTuple,:node_client)},{:got_a_tweet,Enum.at(tweets,x),Enum.at(hashTag,x),Enum.at(tweet_by_user,x),Enum.at(nodes_tweeting,x),nil,Map.get(userTuple,:name_node),Map.get(userTuple,:node_client)})
+        end)
       else
         tweets_based_references_for_given_user=[]
       end
@@ -291,8 +295,11 @@ def login_query_for_client(state,index)do
        nodes_id_for_tweets=Enum.map(Enum.filter(Enum.with_index(Enum.map(Enum.with_index(tweet_by_user),fn({x,i})-> Enum.find_index(user_has_subscibed_to_list,fn(y)-> x==elem(y,0) end) end)),fn({x,i})-> x end),fn({x,i})-> i end)
        
        if(length(nodes_id_for_tweets)>0) do
-        tweets_based_has_subscribed_to_for_given_user=Enum.map(nodes_id_for_tweets,fn(x)-> to_string(Enum.at(tweets,x))<>" By user "<>to_string(Enum.at(tweet_by_user,x)) end) 
-        GenServer.cast({Map.get(userTuple,:name_node),Map.get(userTuple,:node_client)},{:here,tweets_based_has_subscribed_to_for_given_user})
+        #tweets_based_has_subscribed_to_for_given_user=Enum.map(nodes_id_for_tweets,fn(x)-> to_string(Enum.at(tweets,x))<>" By user "<>to_string(Enum.at(tweet_by_user,x)) end) 
+        #GenServer.cast({Map.get(userTuple,:name_node),Map.get(userTuple,:node_client)},{:here,tweets_based_has_subscribed_to_for_given_user})
+        Enum.each(nodes_id_for_tweets,fn(x)->
+                GenServer.cast({Map.get(userTuple,:name_node),Map.get(userTuple,:node_client)},{:got_a_tweet,Enum.at(tweets,x),Enum.at(hashTag,x),Enum.at(tweet_by_user,x),Enum.at(nodes_tweeting,x),nil,Map.get(userTuple,:name_node),Map.get(userTuple,:node_client)})
+        end)
        else
         tweets_based_has_subscribed_to_for_given_user=[]
        end
