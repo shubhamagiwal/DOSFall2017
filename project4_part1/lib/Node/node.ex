@@ -177,8 +177,13 @@ use GenServer
         Process.sleep(1_000)
         #GenServer.cast({Boss_Server,server_name},{:here})
         #:retweet,client_node_name,name_of_user
-        {name_of_node,client_node_name}=Enum.random(l)
-        GenServer.cast({name_of_node,client_node_name},{:mention_tweet,client_node_name,name_of_node})
+        #{name_of_node,client_node_name}=Enum.random(l)
+        #GenServer.cast({name_of_node,client_node_name},{:mention_tweet,client_node_name,name_of_node})
+        #{:zipf_distribution,client_name,client_node_name,numNodes}
+        IO.puts "I am here"
+        Enum.each(l,fn({name_node_x,client_node_x})-> GenServer.cast({Boss_Server,server_name},{:zipf_distribution,name_node_x,client_node_x,numNode})  end)
+
+
     end
 
       def spawn_nodes(numNodes,start_value,l,server_node_name,client_node_name) do
@@ -187,6 +192,8 @@ use GenServer
                 name_of_node=Project4Part1.Node.start(start_value,server_node_name,client_node_name)
                 l=l++[name_of_node]
                 create_tweet_for_user(@numTweets,elem(name_of_node,0),1,server_node_name,client_node_name,start_value,nil)
+                {name_of_node_node,client_node_name}=name_of_node
+                GenServer.cast({name_of_node_node,client_node_name},{:mention_tweet,client_node_name,name_of_node_node})
                 start_value=start_value+1
                 l=spawn_nodes(numNodes,start_value,l,server_node_name,client_node_name)
              end

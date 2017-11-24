@@ -1,5 +1,7 @@
 defmodule Project4Part1.Boss do
 use GenServer
+@numTweetsForZipf 100
+@s 1
 
 
 def init(:ok) do
@@ -242,7 +244,47 @@ def handle_call({:get_random_tweet_for_mention,client_name,client_node}, _from, 
         {:reply,{node,hashTag,tweet,tweet_by_user,reference,reference_node},state}
 end
 
+def handle_cast({:zipf_distribution,client_name,client_node_name,numNodes},state) do
 
+        array_list=Enum.filter(Enum.sort(Enum.map(Enum.with_index(state[:users]),fn({x,i})-> 
+        {Enum.count(x[:is_subscribed_by]),i,x}end)),& !is_nil(&1))
+
+        array_list_final=Enum.filter(Enum.map(Enum.with_index(array_list),fn({x,index})
+        -> if(elem(x,2)[:node_client]==client_node_name and elem(x,2)[:name_node]==client_name) 
+        do {elem(x,0),index} end end),& !is_nil(&1))
+
+        number_of_subscribers=elem(Enum.at(array_list_final,0),0)    
+        index=elem(Enum.at(array_list_final,0),1)   
+
+        zipf_distribution_for_given_x(index+1,numNodes,client_name,client_node_name)
+
+        {:noreply,state}
+
+end
+
+def zipf_distribution_for_given_x(x,numNodes,client_name,client_node_name)do
+        c=:math.pow(Enum.reduce(Enum.to_list(1..numNodes),0,fn(x,acc)->:math.pow(1/x,@s)+acc end),-1)
+        IO.inspect :math.pow(x,@s)
+
+        f_x=round(c/(:math.pow(x,@s)))
+        IO.inspect f_x
+        num_tweets=(@numTweetsForZipf-1)*f_x
+        num_tweets_with_mention=f_x
+
+        #    def handle_cast({:tweet,name_of_user,client_node_name,reference},state)do
+        IO.inspect "I am in Zipf"
+
+        if(num_tweets>0)do
+                Enum.each(Enum.to_list(1..num_tweets),fn(x) -> GenServer.cast({client_name,client_node_name},{:tweet,client_name,client_node_name,nil})  end)      
+        end
+
+         #       def handle_cast({:mention_tweet,client_node_name,name_of_user},state)do
+
+        if(num_tweets_with_mention>0)do
+                Enum.each(Enum.to_list(1..num_tweets_with_mention),fn(x) -> GenServer.cast({client_name,client_node_name},{:mention_tweet,client_node_name,client_name}) end)      
+        end
+        
+end
 
 def handle_cast({:query,clientNode,clientName},state) do
     list=Enum.filter(Enum.with_index(state[:users]), fn({x,i}) -> if(x[:node_client]==clientNode and x[:name_node]==clientName) do  i  end end)
