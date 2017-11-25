@@ -174,7 +174,7 @@ use GenServer
         startValue=GenServer.call({Boss_Server,server_name},{:get_start_value},:infinity)
         GenServer.cast({Boss_Server,server_name},{:update_start_value,startValue+numNode})
         l= spawn_nodes(numNode+startValue,startValue,[],server_name,elem(tuple,0))
-        IO.inspect l
+        #IO.inspect l
 
         list=GenServer.call({Boss_Server,server_name},{:get_list_users},:infinity)
         
