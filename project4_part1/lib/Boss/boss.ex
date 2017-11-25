@@ -5,7 +5,17 @@ use GenServer
 
 
 def init(:ok) do
-        {:ok,%{:nodes => [],:hashTag => [],:tweets=>[],:reference=>[],:tweet_by_user => [],:users=>[],:reference_node=>[]}}
+        {:ok,%{:nodes => [],:hashTag => [],:tweets=>[],:reference=>[],:tweet_by_user => [],:users=>[],:reference_node=>[],:start_value=>1}}
+end
+
+def handle_call({:get_start_value}, _from, state) do
+   {:reply,state[:start_value],state}
+end
+
+def handle_cast({:update_start_value,newValue},state)do
+      {_,state_password}=Map.get_and_update(state,:start_value, fn current_value -> {current_value,newValue} end)
+      state=Map.merge(state,state_password)
+      {:noreply,state}
 end
 
 def handle_cast({:created_user,node_client,password,name_node,id},state)do
@@ -189,6 +199,7 @@ end
 
 def handle_cast({:assign_hashTags_to_user,numHashTags,element}, state) do
          
+         #IO.inspect element
          client_name=elem(element,0)
          client_node=elem(element,1)
 
@@ -264,15 +275,17 @@ end
 
 def zipf_distribution_for_given_x(x,numNodes,client_name,client_node_name)do
         c=:math.pow(Enum.reduce(Enum.to_list(1..numNodes),0,fn(x,acc)->:math.pow(1/x,@s)+acc end),-1)
-        IO.inspect :math.pow(x,@s)
+        #IO.inspect :math.pow(x,@s)
 
-        f_x=round(c/(:math.pow(x,@s)))
-        IO.inspect f_x
-        num_tweets=(@numTweetsForZipf-1)*f_x
-        num_tweets_with_mention=f_x
+        f_x=(c/(:math.pow(x,@s)))
+        num_tweets=round((@numTweetsForZipf-1)*f_x)
+        num_tweets_with_mention=round(f_x)
+
+        #IO.inspect num_tweets
+        #IO.inspect num_tweets_with_mention
 
         #    def handle_cast({:tweet,name_of_user,client_node_name,reference},state)do
-        IO.inspect "I am in Zipf"
+        # IO.inspect "I am in Zipf"
 
         if(num_tweets>0)do
                 Enum.each(Enum.to_list(1..num_tweets),fn(x) -> GenServer.cast({client_name,client_node_name},{:tweet,client_name,client_node_name,nil})  end)      

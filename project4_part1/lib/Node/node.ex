@@ -3,6 +3,7 @@ use GenServer
 
 @numTweets 2
 @numHashTags 10
+@numberOfSubscriptions 1
 #Server Side Implementation
     def init(args) do  
         schedule_periodic_login_and_logout()
@@ -170,8 +171,10 @@ use GenServer
         server_name=String.to_atom(to_string("server@"<> Enum.at(elem(tuple,1),1)))
         Node.connect(server_name)
         {numNode,_}=Integer.parse(Enum.at(elem(tuple,1),2))
-        l= spawn_nodes(numNode,1,[],server_name,elem(tuple,0))
-        IO.inspect Node.self()
+        startValue=GenServer.call({Boss_Server,server_name},{:get_start_value},:infinity)
+        GenServer.cast({Boss_Server,server_name},{:update_start_value,startValue+numNode})
+        l= spawn_nodes(numNode+startValue,startValue,[],server_name,elem(tuple,0))
+        IO.inspect l
         random_subscriptions(l,1,server_name)
         random_hashTags_for_a_given_user(server_name,@numHashTags,l,0)
         Process.sleep(1_000)
@@ -213,9 +216,11 @@ use GenServer
         if(start<=length(list)) do
             listLength=length(list)
             numberList=1..listLength
-            random_number_subscriptions=Enum.random(numberList)-1
+            #random_number_subscriptions=Enum.random(numberList)-1
+            random_number_subscriptions=@numberOfSubscriptions
             element=Enum.at(list,start-1);
             newList=list--[element]
+            IO.inspect newList
             generate_subscriptions(newList,1,random_number_subscriptions,server_name,element)
             start=start+1
             random_subscriptions(list, start,server_name) 
