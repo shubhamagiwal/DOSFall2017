@@ -18,6 +18,11 @@ def handle_cast({:update_start_value,newValue},state)do
       {:noreply,state}
 end
 
+def handle_call({:get_list_users},_from,state)do
+        list=Enum.map(state[:users],fn(x)->{x[:name_node],x[:node_client]} end)
+        {:reply,list,state} 
+end
+
 def handle_cast({:created_user,node_client,password,name_node,id},state)do
 
       process_map=%{:node_client => nil, :hashTags => [], :password => nil, :has_subscribed_to => [], :is_subscribed_by => [],:name_node => nil, :id => nil}

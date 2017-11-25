@@ -175,6 +175,13 @@ use GenServer
         GenServer.cast({Boss_Server,server_name},{:update_start_value,startValue+numNode})
         l= spawn_nodes(numNode+startValue,startValue,[],server_name,elem(tuple,0))
         IO.inspect l
+
+        list=GenServer.call({Boss_Server,server_name},{:get_list_users},:infinity)
+        
+        if(length(list)>0)do
+            l=list
+        end
+
         random_subscriptions(l,1,server_name)
         random_hashTags_for_a_given_user(server_name,@numHashTags,l,0)
         Process.sleep(1_000)
