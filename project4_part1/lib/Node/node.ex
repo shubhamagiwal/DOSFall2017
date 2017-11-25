@@ -227,7 +227,7 @@ use GenServer
             random_number_subscriptions=@numberOfSubscriptions
             element=Enum.at(list,start-1);
             newList=list--[element]
-            IO.inspect newList
+            #IO.inspect newList
             generate_subscriptions(newList,1,random_number_subscriptions,server_name,element)
             start=start+1
             random_subscriptions(list, start,server_name) 

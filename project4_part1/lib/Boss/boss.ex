@@ -324,6 +324,8 @@ def login_query_for_client(state,index)do
      user_has_subscibed_to_list=userTuple[:has_subscribed_to]
      nodes_tweeting=state[:nodes]
 
+     #IO.inspect "login"
+
      # User Preferred Tag Tweets
      hashTags_indices_for_user_preferred_tags=Enum.filter(Enum.map(user_preferred_hashtags,fn(x)-> Enum.find_index(hashTag,fn(y) -> x==y  end)  end), & !is_nil(&1))
      if(length(hashTags_indices_for_user_preferred_tags)>0) do
