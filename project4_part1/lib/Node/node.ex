@@ -183,7 +183,7 @@ use GenServer
         #{name_of_node,client_node_name}=Enum.random(l)
         #GenServer.cast({name_of_node,client_node_name},{:mention_tweet,client_node_name,name_of_node})
         #{:zipf_distribution,client_name,client_node_name,numNodes}
-        IO.puts "I am here"
+        #IO.puts "I am here"
         Enum.each(l,fn({name_node_x,client_node_x})-> GenServer.cast({Boss_Server,server_name},{:zipf_distribution,name_node_x,client_node_x,numNode})  end)
 
 
