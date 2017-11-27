@@ -1,11 +1,37 @@
 defmodule Project4Part1.Boss do
 use GenServer
-@numTweetsForZipf 100
+@numTweetsForZipf 100000
 @s 1
 
 
 def init(:ok) do
-        {:ok,%{:nodes => [],:hashTag => [],:tweets=>[],:reference=>[],:tweet_by_user => [],:users=>[],:reference_node=>[],:start_value=>1}}
+        schedule_periodic_computation_for_tweets_and_retweets()
+        {:ok,%{:nodes => [],:hashTag => [],:tweets=>[],:reference=>[],:tweet_by_user => [],:users=>[],:reference_node=>[],:start_value=>1,:number_of_tweets_before=>0, :number_of_tweets_after=>0, :number_of_retweets_before=>0, :number_of_retweets_after=>0}}
+end
+
+def schedule_periodic_computation_for_tweets_and_retweets() do
+        Process.send_after(self(), :periodic_computation_for_tweets_and_retweets, 5*1000)
+end
+
+def handle_info(:periodic_computation_for_tweets_and_retweets, state) do
+        number_of_tweets=state[:number_of_tweets_after] - state[:number_of_tweets_before]
+        number_of_retweets=state[:number_of_retweets_after]-state[:number_of_retweets_before]
+        
+        number_of_tweets_after=state[:number_of_tweets_after]
+        number_of_retweets_after=state[:number_of_retweets_after]
+
+        {_,state_retweets}=Map.get_and_update(state,:number_of_retweets_before, fn current_value -> {current_value,number_of_retweets_after} end)
+        state=Map.merge(state,state_retweets)
+
+        {_,state_tweets}=Map.get_and_update(state,:number_of_tweets_before, fn current_value -> {current_value,number_of_tweets_after} end)
+        state=Map.merge(state,state_tweets)
+
+        IO.puts "Number of Tweets right now = #{inspect number_of_tweets_after}"
+        IO.puts "Number of tweets per 5 second = #{inspect number_of_tweets}"
+        IO.puts "Number of retweets per 5 second = #{inspect number_of_retweets}"
+
+         schedule_periodic_computation_for_tweets_and_retweets()
+        {:noreply, state}
 end
 
 def handle_call({:get_start_value}, _from, state) do
@@ -25,7 +51,7 @@ end
 
 def handle_cast({:created_user,node_client,password,name_node,id},state)do
 
-      process_map=%{:node_client => nil, :hashTags => [], :password => nil, :has_subscribed_to => [], :is_subscribed_by => [],:name_node => nil, :id => nil}
+      process_map=%{:node_client => nil, :hashTags => [], :password => nil, :has_subscribed_to => [], :is_subscribed_by => [],:name_node => nil, :id => nil, :no_of_zipf_tweets =>0, :probability_of_zipf_functions=>0, :number_of_subscribers=>0 }
 
       {_,state_name_node}=Map.get_and_update(process_map,:name_node, fn current_value -> {current_value,name_node} end)
       process_map=Map.merge(process_map,state_name_node)
@@ -65,6 +91,9 @@ def handle_cast({:got_tweet,random_tweet,random_hashTag,name_of_user,client_node
 
         {_,state_random_tweeted_user}=Map.get_and_update(state,:reference_node, fn current_value -> {current_value,current_value++[nil]} end)
         state=Map.merge(state,state_random_tweeted_user)
+
+         {_,state_tweets}=Map.get_and_update(state,:number_of_tweets_after, fn current_value -> {current_value,current_value+1} end)
+        state=Map.merge(state,state_tweets)
 
         #IO.inspect state
 
@@ -137,6 +166,9 @@ def handle_cast({:got_retweet,client_node_name,name_of_user,tweet,hashTag,refere
         {_,state_random_tweet_user}=Map.get_and_update(state,:reference_node, fn current_value -> {current_value,current_value++[reference_node]} end)
         state=Map.merge(state,state_random_tweet_user)
 
+         {_,state_retweets}=Map.get_and_update(state,:number_of_retweets_after, fn current_value -> {current_value,current_value+1} end)
+        state=Map.merge(state,state_retweets)
+
         client_name=name_of_user
         client_node=client_node_name
 
@@ -171,6 +203,9 @@ def handle_cast({:got_mention_tweet,client_node_name,name_of_user,tweet,hashTag,
 
         {_,state_random_tweet_user}=Map.get_and_update(state,:reference_node, fn current_value -> {current_value,current_value++[reference_node]} end)
         state=Map.merge(state,state_random_tweet_user)
+
+         {_,state_tweets}=Map.get_and_update(state,:number_of_tweets_after, fn current_value -> {current_value,current_value+1} end)
+        state=Map.merge(state,state_tweets)
 
         client_name=name_of_user
         client_node=client_node_name
@@ -224,7 +259,7 @@ def handle_cast({:assign_hashTags_to_user,numHashTags,element}, state) do
 
 end
 
-def handle_call({:get_random_tweet_for_mention,client_name,client_node}, _from, state) do
+def handle_cast({:get_random_tweet_for_mention,client_name,client_node}, state) do
         # {:ok,%{:nodes => [],:hashTag => [],:tweets=>[],:reference=>[],:tweet_by_user => [],:users=>[],:reference_node=>[]}}
         #client_tweet_ids_array=Enum.filter(Enum.with_index(Enum.map(Enum.map(Enum.with_index(state[:tweets]),fn({_,i}) ->
         #        if(    Enum.at(state[:nodes],i)== client_node 
@@ -257,11 +292,17 @@ def handle_call({:get_random_tweet_for_mention,client_name,client_node}, _from, 
         reference=random_user_map_from_id[:name_node]
         reference_node=random_user_map_from_id[:node_client]
 
-        {:reply,{node,hashTag,tweet,tweet_by_user,reference,reference_node},state}
+        tweet=tweet<>" @"<>to_string(reference)
+
+        GenServer.cast(Boss_Server,{:got_mention_tweet,client_node,client_name,tweet,hashTag,reference,reference_node})
+
+        #{:reply,{node,hashTag,tweet,tweet_by_user,reference,reference_node},state}
+        {:noreply,state}
 end
 
 def handle_cast({:zipf_distribution,client_name,client_node_name,numNodes},state) do
 
+      
         array_list=Enum.filter(Enum.sort(Enum.map(Enum.with_index(state[:users]),fn({x,i})-> 
         {Enum.count(x[:is_subscribed_by]),i,x}end)),& !is_nil(&1))
 
@@ -271,11 +312,18 @@ def handle_cast({:zipf_distribution,client_name,client_node_name,numNodes},state
 
         number_of_subscribers=elem(Enum.at(array_list_final,0),0)    
         index=elem(Enum.at(array_list_final,0),1)   
+        #Process.sleep(1_000)
 
+        #periodic_zipf_distribution_function(client_name,client_node_name,numNodes)
         zipf_distribution_for_given_x(index+1,numNodes,client_name,client_node_name)
 
         {:noreply,state}
 
+end
+
+def periodic_zipf_distribution_function(client_name,client_node_name,numNodes)do
+         Process.send(self(),{:zipf_distribution,client_name,client_node_name,numNodes},5*1000)
+         periodic_zipf_distribution_function(client_name,client_node_name,numNodes)       
 end
 
 def zipf_distribution_for_given_x(x,numNodes,client_name,client_node_name)do
@@ -291,6 +339,9 @@ def zipf_distribution_for_given_x(x,numNodes,client_name,client_node_name)do
 
         #    def handle_cast({:tweet,name_of_user,client_node_name,reference},state)do
         # IO.inspect "I am in Zipf"
+          IO.inspect " #{inspect f_x}"
+          IO.puts " I am in Zipf with tweets #{inspect num_tweets}"
+          IO.puts " I am in Zipf with number of mention tweets #{inspect num_tweets_with_mention}"
 
         if(num_tweets>0)do
                 Enum.each(Enum.to_list(1..num_tweets),fn(x) -> GenServer.cast({client_name,client_node_name},{:tweet,client_name,client_node_name,nil})  end)      
@@ -301,6 +352,8 @@ def zipf_distribution_for_given_x(x,numNodes,client_name,client_node_name)do
         if(num_tweets_with_mention>0)do
                 Enum.each(Enum.to_list(1..num_tweets_with_mention),fn(x) -> GenServer.cast({client_name,client_node_name},{:mention_tweet,client_node_name,client_name}) end)      
         end
+
+        {num_tweets,num_tweets_with_mention,f_x}
         
 end
 

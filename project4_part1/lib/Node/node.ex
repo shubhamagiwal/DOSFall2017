@@ -65,9 +65,10 @@ use GenServer
 
     def handle_cast({:mention_tweet,client_node_name,name_of_user},state)do
         server_node_name=state[:boss_node]
-        {_,hashTag,tweet,_,reference,reference_node}=GenServer.call({Boss_Server,server_node_name},{:get_random_tweet_for_mention,name_of_user,client_node_name},:infinity)
-        tweet=tweet<>" @"<>to_string(reference)
-        GenServer.cast({Boss_Server,server_node_name},{:got_mention_tweet,client_node_name,name_of_user,tweet,hashTag,reference,reference_node})
+        #{_,hashTag,tweet,_,reference,reference_node}=GenServer.call({Boss_Server,server_node_name},{:get_random_tweet_for_mention,name_of_user,client_node_name},:infinity)
+        #tweet=tweet<>" @"<>to_string(reference)
+        #GenServer.cast({Boss_Server,server_node_name},{:got_mention_tweet,client_node_name,name_of_user,tweet,hashTag,reference,reference_node})
+        GenServer.cast({Boss_Server,server_node_name},{:get_random_tweet_for_mention,name_of_user,client_node_name})
         {:noreply,state}
      end
 
