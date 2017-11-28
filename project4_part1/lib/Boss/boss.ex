@@ -1,6 +1,6 @@
 defmodule Project4Part1.Boss do
 use GenServer
-@numTweetsForZipf 100000
+@numTweetsForZipf 1000
 @s 1
 
 
@@ -437,6 +437,8 @@ def handle_call({:get_random_tweet_for_mention,client_name,client_node},_from ,s
          array_list=:ets.lookup(:users, "users")
          elem_tuple=Enum.at(array_list,0)
          users_array_list=elem(elem_tuple,1)
+
+         #IO.inspect users_array_list
 
          #IO.puts "#{inspect users_array_list} +++++"
          #IO.puts "#{inspect array_list} -----"
