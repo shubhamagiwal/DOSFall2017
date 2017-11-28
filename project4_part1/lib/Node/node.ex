@@ -65,10 +65,10 @@ use GenServer
 
     def handle_cast({:mention_tweet,client_node_name,name_of_user},state)do
         server_node_name=state[:boss_node]
-        #{_,hashTag,tweet,_,reference,reference_node}=GenServer.call({Boss_Server,server_node_name},{:get_random_tweet_for_mention,name_of_user,client_node_name},:infinity)
-        #tweet=tweet<>" @"<>to_string(reference)
-        #GenServer.cast({Boss_Server,server_node_name},{:got_mention_tweet,client_node_name,name_of_user,tweet,hashTag,reference,reference_node})
-        GenServer.cast({Boss_Server,server_node_name},{:get_random_tweet_for_mention,name_of_user,client_node_name})
+        {_,hashTag,tweet,_,reference,reference_node}=GenServer.call({Boss_Server,server_node_name},{:get_random_tweet_for_mention,name_of_user,client_node_name},:infinity)
+        tweet=tweet<>" @"<>to_string(reference)
+        GenServer.cast({Boss_Server,server_node_name},{:got_mention_tweet,client_node_name,name_of_user,tweet,hashTag,reference,reference_node})
+        #GenServer.cast({Boss_Server,server_node_name},{:get_random_tweet_for_mention,name_of_user,client_node_name})
         {:noreply,state}
      end
 
@@ -175,7 +175,7 @@ use GenServer
         startValue=GenServer.call({Boss_Server,server_name},{:get_start_value},:infinity)
         GenServer.cast({Boss_Server,server_name},{:update_start_value,startValue+numNode})
         l= spawn_nodes(numNode+startValue,startValue,[],server_name,elem(tuple,0))
-        #IO.inspect l
+        IO.inspect l
 
         list=GenServer.call({Boss_Server,server_name},{:get_list_users},:infinity)
         
@@ -185,7 +185,8 @@ use GenServer
 
         random_subscriptions(l,1,server_name)
         random_hashTags_for_a_given_user(server_name,@numHashTags,l,0)
-        Process.sleep(1_000)
+        IO.puts "Done"
+        #Process.sleep(1_000)
         #GenServer.cast({Boss_Server,server_name},{:here})
         #:retweet,client_node_name,name_of_user
         #{name_of_node,client_node_name}=Enum.random(l)
@@ -241,6 +242,7 @@ use GenServer
            random_node_choose=Enum.random(list);
            #IO.inspect random_node_choose
            list=list--[random_node_choose]
+           IO.puts "I am here"
            GenServer.cast({Boss_Server,server_name},{:add_subscription_for_given_client_user,random_node_choose,node})
            GenServer.cast({Boss_Server,server_name},{:add_is_subscribed_for_given_client,random_node_choose,node})
            startValue=startValue+1;

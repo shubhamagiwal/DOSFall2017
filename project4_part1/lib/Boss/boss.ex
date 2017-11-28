@@ -64,6 +64,8 @@ def handle_cast({:created_user,node_client,password,name_node,id},state)do
 
       {_,state_id}=Map.get_and_update(process_map,:id, fn current_value -> {current_value,id} end)
       process_map=Map.merge(process_map,state_id)
+
+
       
       {_,state_random_tweet}=Map.get_and_update(state,:users, fn current_value -> {current_value,current_value++[process_map]} end)
       state=Map.merge(state,state_random_tweet)
@@ -259,7 +261,7 @@ def handle_cast({:assign_hashTags_to_user,numHashTags,element}, state) do
 
 end
 
-def handle_cast({:get_random_tweet_for_mention,client_name,client_node}, state) do
+def handle_call({:get_random_tweet_for_mention,client_name,client_node},_from ,state) do
         # {:ok,%{:nodes => [],:hashTag => [],:tweets=>[],:reference=>[],:tweet_by_user => [],:users=>[],:reference_node=>[]}}
         #client_tweet_ids_array=Enum.filter(Enum.with_index(Enum.map(Enum.map(Enum.with_index(state[:tweets]),fn({_,i}) ->
         #        if(    Enum.at(state[:nodes],i)== client_node 
@@ -292,16 +294,17 @@ def handle_cast({:get_random_tweet_for_mention,client_name,client_node}, state) 
         reference=random_user_map_from_id[:name_node]
         reference_node=random_user_map_from_id[:node_client]
 
-        tweet=tweet<>" @"<>to_string(reference)
+        #tweet=tweet<>" @"<>to_string(reference)
 
-        GenServer.cast(Boss_Server,{:got_mention_tweet,client_node,client_name,tweet,hashTag,reference,reference_node})
+        #GenServer.cast(Boss_Server,{:got_mention_tweet,client_node,client_name,tweet,hashTag,reference,reference_node})
 
-        #{:reply,{node,hashTag,tweet,tweet_by_user,reference,reference_node},state}
-        {:noreply,state}
+        {:reply,{node,hashTag,tweet,tweet_by_user,reference,reference_node},state}
+        #{:noreply,state}
 end
 
 def handle_cast({:zipf_distribution,client_name,client_node_name,numNodes},state) do
 
+        IO.puts "#{inspect client_node_name} #{inspect client_name}"
       
         array_list=Enum.filter(Enum.sort(Enum.map(Enum.with_index(state[:users]),fn({x,i})-> 
         {Enum.count(x[:is_subscribed_by]),i,x}end)),& !is_nil(&1))
