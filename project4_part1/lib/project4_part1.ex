@@ -1,7 +1,7 @@
 defmodule Project4Part1 do
   def main(args \\ []) do
 
-        if(length(args)==1) do
+        if(length(args)==2) do
             #Create the server Processs
             Project4Part1.LibFunctions.get_ip_address(args)|>Project4Part1.Boss.start_boss
             loop()

@@ -174,9 +174,10 @@ use GenServer
         value=Node.connect(server_name)
         IO.inspect value
         {numNode,_}=Integer.parse(Enum.at(elem(tuple,1),2))
-        #startValue=GenServer.call({Boss_Server,server_name},{:get_start_value},:infinity)
-        startValue=0
-        #GenServer.cast({Boss_Server,server_name},{:update_start_value,startValue+numNode})
+        startValue=GenServer.call({Boss_Server,server_name},{:get_start_value},:infinity)
+        #startValue=0
+        GenServer.cast({Boss_Server,server_name},{:update_start_value,startValue+numNode})
+
         l= spawn_nodes(numNode+startValue,startValue,[],server_name,elem(tuple,0))
         #IO.inspect l
 
@@ -188,14 +189,12 @@ use GenServer
 
         random_subscriptions(l,1,server_name)
         random_hashTags_for_a_given_user(server_name,@numHashTags,l,0)
-        #Process.sleep(1_000)
-        #GenServer.cast({Boss_Server,server_name},{:here})
-        #:retweet,client_node_name,name_of_user
-        #{name_of_node,client_node_name}=Enum.random(l)
-        #GenServer.cast({name_of_node,client_node_name},{:mention_tweet,client_node_name,name_of_node})
-        #{:zipf_distribution,client_name,client_node_name,numNodes}
-        #IO.puts "I am here"
-        Enum.each(l,fn({name_node_x,client_node_x})-> GenServer.cast({Boss_Server,server_name},{:zipf_distribution,name_node_x,client_node_x,numNode})  end)
+        
+        #Send an Ack to server
+        #Process.sleep(1_0000)
+        GenServer.cast({Boss_Server,server_name},{:increment_numClients,1,numNode,l})
+
+        #Enum.each(l,fn({name_node_x,client_node_x})-> GenServer.cast({Boss_Server,server_name},{:zipf_distribution,name_node_x,client_node_x,numNode})  end)
 
 
     end
@@ -205,21 +204,9 @@ use GenServer
              if(start_value<=numNodes) do
                 name_of_node=Project4Part1.Node.start(start_value,server_node_name,client_node_name)
                 l=l++[name_of_node]
-                
-                if(0.01*numNodes<=1) do
-                    create_tweet_for_user(@numTweets,elem(name_of_node,0),1,server_node_name,client_node_name,start_value,nil)
-                    {name_of_node_node,client_node_name}=name_of_node
-                    GenServer.cast({name_of_node_node,client_node_name},{:mention_tweet,client_node_name,name_of_node_node})
-
-                else
-                     if(prob_initial_tweets(numNodes)) do
-                         create_tweet_for_user(@numTweets,elem(name_of_node,0),1,server_node_name,client_node_name,start_value,nil)
-                         {name_of_node_node,client_node_name}=name_of_node
-                         GenServer.cast({name_of_node_node,client_node_name},{:mention_tweet,client_node_name,name_of_node_node})
-
-                     end
-                end
-                
+                create_tweet_for_user(@numTweets,elem(name_of_node,0),1,server_node_name,client_node_name,start_value,nil)
+                {name_of_node_node,client_node_name}=name_of_node
+                GenServer.cast({name_of_node_node,client_node_name},{:mention_tweet,client_node_name,name_of_node_node})
                 start_value=start_value+1
                 l=spawn_nodes(numNodes,start_value,l,server_node_name,client_node_name)
              end
