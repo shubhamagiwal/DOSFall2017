@@ -6,7 +6,26 @@ use GenServer
 
 def init(:ok) do
         schedule_periodic_computation_for_tweets_and_retweets()
-        {:ok,%{:nodes => [],:hashTag => [],:tweets=>[],:reference=>[],:tweet_by_user => [],:users=>[],:reference_node=>[],:start_value=>1,:number_of_tweets_before=>0, :number_of_tweets_after=>0, :number_of_retweets_before=>0, :number_of_retweets_after=>0}}
+        #ETS start
+        :ets.new(:nodes, [:set, :protected, :named_table])
+        :ets.new(:hashTag, [:set, :protected, :named_table])
+        :ets.new(:tweets, [:set, :protected, :named_table])
+        :ets.new(:reference, [:set, :protected, :named_table])
+        :ets.new(:tweet_by_user, [:set, :protected, :named_table])
+        :ets.new(:users, [:set, :protected, :named_table])
+        :ets.new(:reference_node, [:set, :protected, :named_table])
+
+        :ets.insert(:nodes,{"nodes",[]})
+        :ets.insert(:hashTag,{"hashTag",[]})
+        :ets.insert(:tweets,{"tweets",[]})
+        :ets.insert(:reference,{"reference",[]})
+        :ets.insert(:tweet_by_user,{"tweet_by_user",[]})
+        :ets.insert(:reference_node,{"reference_node",[]})
+        :ets.insert(:users,{"users",[]})
+
+        #ETS End
+
+        {:ok,%{:start_value=>1,:number_of_tweets_before=>0, :number_of_tweets_after=>0, :number_of_retweets_before=>0, :number_of_retweets_after=>0}}
 end
 
 def schedule_periodic_computation_for_tweets_and_retweets() do
@@ -45,7 +64,9 @@ def handle_cast({:update_start_value,newValue},state)do
 end
 
 def handle_call({:get_list_users},_from,state)do
-        list=Enum.map(state[:users],fn(x)->{x[:name_node],x[:node_client]} end)
+        array_list=:ets.lookup(:users, "users")
+        elem_tuple=Enum.at(array_list,0)
+        list=Enum.map(elem(elem_tuple,1),fn(x)->{x[:name_node],x[:node_client]} end)
         {:reply,list,state} 
 end
 
@@ -65,10 +86,16 @@ def handle_cast({:created_user,node_client,password,name_node,id},state)do
       {_,state_id}=Map.get_and_update(process_map,:id, fn current_value -> {current_value,id} end)
       process_map=Map.merge(process_map,state_id)
 
+      array_list=:ets.lookup(:users, "users")
+      #IO.inspect array_list
 
+        elem_tuple=Enum.at(array_list,0)
+        users_array_list=elem(elem_tuple,1)
+        users_array_list=users_array_list++[process_map]
+        :ets.insert(:users,{"users",users_array_list})
       
-      {_,state_random_tweet}=Map.get_and_update(state,:users, fn current_value -> {current_value,current_value++[process_map]} end)
-      state=Map.merge(state,state_random_tweet)
+      #{_,state_random_tweet}=Map.get_and_update(state,:users, fn current_value -> {current_value,current_value++[process_map]} end)
+      #state=Map.merge(state,state_random_tweet)
 
       {:noreply,state}
 end
@@ -76,26 +103,57 @@ end
 def handle_cast({:got_tweet,random_tweet,random_hashTag,name_of_user,client_node_name,reference,isFreshUser},state)do
 
         # tweeter_user_state=Enum.at(state[:tweet_user],tweeter_id-1)
-        {_,state_random_tweet}=Map.get_and_update(state,:tweets, fn current_value -> {current_value,current_value++[random_tweet]} end)
-        state=Map.merge(state,state_random_tweet)
 
-        {_,state_random_hashTag}=Map.get_and_update(state,:hashTag, fn current_value -> {current_value,current_value++[random_hashTag]} end)
-        state=Map.merge(state,state_random_hashTag)
+        #{_,state_random_tweet}=Map.get_and_update(state,:tweets, fn current_value -> {current_value,current_value++[random_tweet]} end)
+        #state=Map.merge(state,state_random_tweet)
+        array_list=:ets.lookup(:tweets, "tweets")
+        elem_tuple=Enum.at(array_list,0)
+        users_array_list=elem(elem_tuple,1)
+        users_array_list=users_array_list++[random_tweet]
+        :ets.insert(:tweets,{"tweets",users_array_list})
 
-        {_,state_random_reference}=Map.get_and_update(state,:reference, fn current_value -> {current_value,current_value++[reference]} end)
-        state=Map.merge(state,state_random_reference)
+        #{_,state_random_hashTag}=Map.get_and_update(state,:hashTag, fn current_value -> {current_value,current_value++[random_hashTag]} end)
+        #state=Map.merge(state,state_random_hashTag)
+        array_list=:ets.lookup(:hashTag, "hashTag")
+        elem_tuple=Enum.at(array_list,0)
+        users_array_list=elem(elem_tuple,1)
+        users_array_list=users_array_list++[random_hashTag]
+        :ets.insert(:hashTag,{"hashTag",users_array_list})
 
-        {_,state_random_node}=Map.get_and_update(state,:nodes, fn current_value -> {current_value,current_value++[client_node_name]} end)
-        state=Map.merge(state,state_random_node)
+        #{_,state_random_reference}=Map.get_and_update(state,:reference, fn current_value -> {current_value,current_value++[reference]} end)
+        #state=Map.merge(state,state_random_reference)
+        array_list=:ets.lookup(:reference, "reference")
+        elem_tuple=Enum.at(array_list,0)
+        users_array_list=elem(elem_tuple,1)
+        users_array_list=users_array_list++[reference]
+        :ets.insert(:reference,{"reference",users_array_list})
 
-        {_,state_random_tweeted_user}=Map.get_and_update(state,:tweet_by_user, fn current_value -> {current_value,current_value++[name_of_user]} end)
-        state=Map.merge(state,state_random_tweeted_user)
+        #{_,state_random_node}=Map.get_and_update(state,:nodes, fn current_value -> {current_value,current_value++[client_node_name]} end)
+        #state=Map.merge(state,state_random_node)
+        array_list=:ets.lookup(:nodes, "nodes")
+        elem_tuple=Enum.at(array_list,0)
+        users_array_list=elem(elem_tuple,1)
+        users_array_list=users_array_list++[client_node_name]
+        :ets.insert(:nodes,{"nodes",users_array_list})
 
-        {_,state_random_tweeted_user}=Map.get_and_update(state,:reference_node, fn current_value -> {current_value,current_value++[nil]} end)
-        state=Map.merge(state,state_random_tweeted_user)
+        #{_,state_random_tweeted_user}=Map.get_and_update(state,:tweet_by_user, fn current_value -> {current_value,current_value++[name_of_user]} end)
+        #state=Map.merge(state,state_random_tweeted_user)
+        array_list=:ets.lookup(:tweet_by_user, "tweet_by_user")
+        elem_tuple=Enum.at(array_list,0)
+        users_array_list=elem(elem_tuple,1)
+        users_array_list=users_array_list++[name_of_user]
+        :ets.insert(:tweet_by_user,{"tweet_by_user",users_array_list})
+
+        #{_,state_random_tweeted_user}=Map.get_and_update(state,:reference_node, fn current_value -> {current_value,current_value++[nil]} end)
+        #state=Map.merge(state,state_random_tweeted_user)
+        array_list=:ets.lookup(:reference_node, "reference_node")
+        elem_tuple=Enum.at(array_list,0)
+        users_array_list=elem(elem_tuple,1)
+        users_array_list=users_array_list++[nil]
+        :ets.insert(:reference_node,{"reference_node",users_array_list})
 
          {_,state_tweets}=Map.get_and_update(state,:number_of_tweets_after, fn current_value -> {current_value,current_value+1} end)
-        state=Map.merge(state,state_tweets)
+         state=Map.merge(state,state_tweets)
 
         #IO.inspect state
 
@@ -123,8 +181,13 @@ def handle_cast({:got_tweet,random_tweet,random_hashTag,name_of_user,client_node
 end
 
 def get_a_list_of_is_subscribed_by_for_given_client(client_name,client_node,state) do
-        index=Enum.find_index(state[:users], fn(x) -> x[:node_client] == client_node and x[:name_node]== client_name end)
-        process_map=Enum.at(state[:users],index)
+        #index=Enum.find_index(state[:users], fn(x) -> x[:node_client] == client_node and x[:name_node]== client_name end)
+        array_list=:ets.lookup(:users, "users")
+        elem_tuple=Enum.at(array_list,0)
+        users_array_list=elem(elem_tuple,1)
+
+        index=Enum.find_index(users_array_list, fn(x) -> x[:node_client] == client_node and x[:name_node]== client_name end)
+        process_map=Enum.at(users_array_list,index)
         is_subscribed_by=process_map[:is_subscribed_by]
         is_subscribed_by
 end
@@ -134,14 +197,21 @@ def handle_cast({:add_subscription_for_given_client_user,random_node_choose,node
          client_name=elem(node,0)
          client_node=elem(node,1)
 
-         index=Enum.find_index(state[:users], fn(x) -> x[:node_client] == client_node and x[:name_node]== client_name end)
-         process_map=Enum.at(state[:users],index)
+         array_list=:ets.lookup(:users, "users")
+         elem_tuple=Enum.at(array_list,0)
+         users_array_list=elem(elem_tuple,1)
+
+         #index=Enum.find_index(state[:users], fn(x) -> x[:node_client] == client_node and x[:name_node]== client_name end)
+         index=Enum.find_index(users_array_list, fn(x) -> x[:node_client] == client_node and x[:name_node]== client_name end)
+         process_map=Enum.at(users_array_list,index)
         
          {_,state_random_has_subscribed_to}=Map.get_and_update(process_map,:has_subscribed_to, fn current_value -> {current_value,current_value++[random_node_choose]} end)
          process_map=Map.merge(process_map,state_random_has_subscribed_to)
 
-         {_,state_update_list}=Map.get_and_update(state,:users, fn current_value -> {current_value,List.replace_at(state[:users],index,process_map)} end)
-         state=Map.merge(state,state_update_list)
+         #{_,state_update_list}=Map.get_and_update(state,:users, fn current_value -> {current_value,List.replace_at(state[:users],index,process_map)} end)
+         users_array_list_update=List.replace_at(users_array_list,index,process_map)
+         :ets.insert(:users,{"users",users_array_list_update})
+         #state=Map.merge(state,state_update_list)
 
          {:noreply,state}
 end
@@ -150,25 +220,61 @@ def handle_cast({:got_retweet,client_node_name,name_of_user,tweet,hashTag,refere
 
         # {:ok,%{:nodes => [],:hashTag => [],:tweets=>[],:reference=>[],:tweet_by_user => [],:users=>[]}}
 
-        {_,state_random_node}=Map.get_and_update(state,:nodes, fn current_value -> {current_value,current_value++[client_node_name]} end)
-        state=Map.merge(state,state_random_node)
+        #{_,state_random_node}=Map.get_and_update(state,:nodes, fn current_value -> {current_value,current_value++[client_node_name]} end)
+        #state=Map.merge(state,state_random_node)
 
-        {_,state_random_hashTag}=Map.get_and_update(state,:hashTag, fn current_value -> {current_value,current_value++[hashTag]} end)
-        state=Map.merge(state,state_random_hashTag)
+        array_list=:ets.lookup(:nodes, "nodes")
+        elem_tuple=Enum.at(array_list,0)
+        users_array_list=elem(elem_tuple,1)
+        users_array_list=users_array_list++[client_node_name]
+        :ets.insert(:nodes,{"nodes",users_array_list})
+
+        #{_,state_random_hashTag}=Map.get_and_update(state,:hashTag, fn current_value -> {current_value,current_value++[hashTag]} end)
+        #state=Map.merge(state,state_random_hashTag)
+
+        array_list=:ets.lookup(:hashTag, "hashTag")
+        elem_tuple=Enum.at(array_list,0)
+        users_array_list=elem(elem_tuple,1)
+        users_array_list=users_array_list++[hashTag]
+        :ets.insert(:hashTag,{"hashTag",users_array_list})
         
-        {_,state_random_tweet}=Map.get_and_update(state,:tweets, fn current_value -> {current_value,current_value++[tweet]} end)
-        state=Map.merge(state,state_random_tweet)
+        #{_,state_random_tweet}=Map.get_and_update(state,:tweets, fn current_value -> {current_value,current_value++[tweet]} end)
+        #state=Map.merge(state,state_random_tweet)
 
-        {_,state_random_tweet_user}=Map.get_and_update(state,:tweet_by_user, fn current_value -> {current_value,current_value++[name_of_user]} end)
-        state=Map.merge(state,state_random_tweet_user)
+        array_list=:ets.lookup(:tweets, "tweets")
+        elem_tuple=Enum.at(array_list,0)
+        users_array_list=elem(elem_tuple,1)
+        users_array_list=users_array_list++[tweet]
+        :ets.insert(:tweets,{"tweets",users_array_list})
 
-        {_,state_random_tweet_user}=Map.get_and_update(state,:reference, fn current_value -> {current_value,current_value++[reference]} end)
-        state=Map.merge(state,state_random_tweet_user)
+        #{_,state_random_tweet_user}=Map.get_and_update(state,:tweet_by_user, fn current_value -> {current_value,current_value++[name_of_user]} end)
+        #state=Map.merge(state,state_random_tweet_user)
 
-        {_,state_random_tweet_user}=Map.get_and_update(state,:reference_node, fn current_value -> {current_value,current_value++[reference_node]} end)
-        state=Map.merge(state,state_random_tweet_user)
+        array_list=:ets.lookup(:tweet_by_user, "tweet_by_user")
+        elem_tuple=Enum.at(array_list,0)
+        users_array_list=elem(elem_tuple,1)
+        users_array_list=users_array_list++[name_of_user]
+        :ets.insert(:tweet_by_user,{"tweet_by_user",users_array_list})
 
-         {_,state_retweets}=Map.get_and_update(state,:number_of_retweets_after, fn current_value -> {current_value,current_value+1} end)
+        #{_,state_random_tweet_user}=Map.get_and_update(state,:reference, fn current_value -> {current_value,current_value++[reference]} end)
+        #state=Map.merge(state,state_random_tweet_user)
+
+         array_list=:ets.lookup(:reference, "reference")
+        elem_tuple=Enum.at(array_list,0)
+        users_array_list=elem(elem_tuple,1)
+        users_array_list=users_array_list++[reference]
+        :ets.insert(:reference,{"reference",users_array_list})
+
+        #{_,state_random_tweet_user}=Map.get_and_update(state,:reference_node, fn current_value -> {current_value,current_value++[reference_node]} end)
+        #state=Map.merge(state,state_random_tweet_user)
+
+        array_list=:ets.lookup(:reference_node, "reference_node")
+        elem_tuple=Enum.at(array_list,0)
+        users_array_list=elem(elem_tuple,1)
+        users_array_list=users_array_list++[reference_node]
+        :ets.insert(:reference_node,{"reference_node",users_array_list})
+
+        {_,state_retweets}=Map.get_and_update(state,:number_of_retweets_after, fn current_value -> {current_value,current_value+1} end)
         state=Map.merge(state,state_retweets)
 
         client_name=name_of_user
@@ -179,6 +285,7 @@ def handle_cast({:got_retweet,client_node_name,name_of_user,tweet,hashTag,refere
         #client_node_name,name_of_user,tweet,hashTag,reference,reference_node
         #client_node_name,name_of_user
         is_subscribed_by=get_a_list_of_is_subscribed_by_for_given_client(client_name,client_node,state)
+        #IO.inspect is_subscribed_by
         Enum.each(is_subscribed_by,fn({client_name_x,client_node_name_x}) -> GenServer.cast({client_name_x,client_node_name_x},{:retweet,tweet,hashTag,client_name_x,client_node_name_x,nil,nil,client_node_name,name_of_user})  end)
 
         {:noreply,state}
@@ -188,23 +295,56 @@ def handle_cast({:got_mention_tweet,client_node_name,name_of_user,tweet,hashTag,
 
         # {:ok,%{:nodes => [],:hashTag => [],:tweets=>[],:reference=>[],:tweet_by_user => [],:users=>[]}}
 
-        {_,state_random_node}=Map.get_and_update(state,:nodes, fn current_value -> {current_value,current_value++[client_node_name]} end)
-        state=Map.merge(state,state_random_node)
+        #{_,state_random_node}=Map.get_and_update(state,:nodes, fn current_value -> {current_value,current_value++[client_node_name]} end)
+        #state=Map.merge(state,state_random_node)
+        array_list=:ets.lookup(:nodes, "nodes")
+        elem_tuple=Enum.at(array_list,0)
+        users_array_list=elem(elem_tuple,1)
+        users_array_list=users_array_list++[client_node_name]
+        :ets.insert(:nodes,{"nodes",users_array_list})
 
-        {_,state_random_hashTag}=Map.get_and_update(state,:hashTag, fn current_value -> {current_value,current_value++[hashTag]} end)
-        state=Map.merge(state,state_random_hashTag)
+        #{_,state_random_hashTag}=Map.get_and_update(state,:hashTag, fn current_value -> {current_value,current_value++[hashTag]} end)
+        #state=Map.merge(state,state_random_hashTag)
+
+        array_list=:ets.lookup(:hashTag, "hashTag")
+        elem_tuple=Enum.at(array_list,0)
+        users_array_list=elem(elem_tuple,1)
+        users_array_list=users_array_list++[hashTag]
+        :ets.insert(:hashTag,{"hashTag",users_array_list})
         
-        {_,state_random_tweet}=Map.get_and_update(state,:tweets, fn current_value -> {current_value,current_value++[tweet]} end)
-        state=Map.merge(state,state_random_tweet)
+        #{_,state_random_tweet}=Map.get_and_update(state,:tweets, fn current_value -> {current_value,current_value++[tweet]} end)
+        #state=Map.merge(state,state_random_tweet)
+        array_list=:ets.lookup(:tweets, "tweets")
+        elem_tuple=Enum.at(array_list,0)
+        users_array_list=elem(elem_tuple,1)
+        users_array_list=users_array_list++[tweet]
+        :ets.insert(:tweets,{"tweets",users_array_list})
 
-        {_,state_random_tweet_user}=Map.get_and_update(state,:tweet_by_user, fn current_value -> {current_value,current_value++[name_of_user]} end)
-        state=Map.merge(state,state_random_tweet_user)
+        #{_,state_random_tweet_user}=Map.get_and_update(state,:tweet_by_user, fn current_value -> {current_value,current_value++[name_of_user]} end)
+        #state=Map.merge(state,state_random_tweet_user)
+        array_list=:ets.lookup(:tweet_by_user, "tweet_by_user")
+        elem_tuple=Enum.at(array_list,0)
+        users_array_list=elem(elem_tuple,1)
+        users_array_list=users_array_list++[name_of_user]
+        :ets.insert(:tweet_by_user,{"tweet_by_user",users_array_list})
 
-        {_,state_random_tweet_user}=Map.get_and_update(state,:reference, fn current_value -> {current_value,current_value++[reference]} end)
-        state=Map.merge(state,state_random_tweet_user)
+        #{_,state_random_tweet_user}=Map.get_and_update(state,:reference, fn current_value -> {current_value,current_value++[reference]} end)
+        #state=Map.merge(state,state_random_tweet_user)
+        array_list=:ets.lookup(:reference, "reference")
+        elem_tuple=Enum.at(array_list,0)
+        users_array_list=elem(elem_tuple,1)
+        users_array_list=users_array_list++[reference]
+        :ets.insert(:reference,{"reference",users_array_list})
 
-        {_,state_random_tweet_user}=Map.get_and_update(state,:reference_node, fn current_value -> {current_value,current_value++[reference_node]} end)
-        state=Map.merge(state,state_random_tweet_user)
+
+        #{_,state_random_tweet_user}=Map.get_and_update(state,:reference_node, fn current_value -> {current_value,current_value++[reference_node]} end)
+        #state=Map.merge(state,state_random_tweet_user)
+
+        array_list=:ets.lookup(:reference_node, "reference_node")
+        elem_tuple=Enum.at(array_list,0)
+        users_array_list=elem(elem_tuple,1)
+        users_array_list=users_array_list++[reference_node]
+        :ets.insert(:reference_node,{"reference_node",users_array_list})
 
          {_,state_tweets}=Map.get_and_update(state,:number_of_tweets_after, fn current_value -> {current_value,current_value+1} end)
         state=Map.merge(state,state_tweets)
@@ -227,14 +367,20 @@ def handle_cast({:add_is_subscribed_for_given_client,random_node_choose,node},st
          client_name=elem(random_node_choose,0)
          client_node=elem(random_node_choose,1)
 
-         index=Enum.find_index(state[:users], fn(x) -> x[:node_client] == client_node and x[:name_node]== client_name end)
-         process_map=Enum.at(state[:users],index)
+         array_list=:ets.lookup(:users, "users")
+         elem_tuple=Enum.at(array_list,0)
+         users_array_list=elem(elem_tuple,1)
+
+         index=Enum.find_index(users_array_list, fn(x) -> x[:node_client] == client_node and x[:name_node]== client_name end)
+         process_map=Enum.at(users_array_list,index)
         
          {_,state_random_has_subscribed_to}=Map.get_and_update(process_map,:is_subscribed_by, fn current_value -> {current_value,current_value++[node]} end)
          process_map=Map.merge(process_map,state_random_has_subscribed_to)
 
-         {_,state_update_list}=Map.get_and_update(state,:users, fn current_value -> {current_value,List.replace_at(state[:users],index,process_map)} end)
-         state=Map.merge(state,state_update_list)
+         #{_,state_update_list}=Map.get_and_update(state,:users, fn current_value -> {current_value,List.replace_at(state[:users],index,process_map)} end)
+         #state=Map.merge(state,state_update_list)
+         users_array_list_update=List.replace_at(users_array_list,index,process_map)
+         :ets.insert(:users,{"users",users_array_list_update})
 
          {:noreply,state}
 end
@@ -245,17 +391,26 @@ def handle_cast({:assign_hashTags_to_user,numHashTags,element}, state) do
          client_name=elem(element,0)
          client_node=elem(element,1)
 
-         index=Enum.find_index(state[:users], fn(x) -> x[:node_client] == client_node and x[:name_node]== client_name end)
-         
-         process_map=Enum.at(state[:users],index)
+         array_list=:ets.lookup(:users, "users")
+         elem_tuple=Enum.at(array_list,0)
+         users_array_list=elem(elem_tuple,1)
 
-         list_of_preferred_hashtags_for_user=Enum.take_random(state[:hashTag],numHashTags)
+         index=Enum.find_index(users_array_list, fn(x) -> x[:node_client] == client_node and x[:name_node]== client_name end)
+         process_map=Enum.at(users_array_list,index)
+
+         array_list1=:ets.lookup(:hashTag, "hashTag")
+         elem_tuple1=Enum.at(array_list1,0)
+         hashTag_array_list=elem(elem_tuple1,1)
+
+         list_of_preferred_hashtags_for_user=Enum.take_random(hashTag_array_list,numHashTags)
 
          {_,state_random_hashTags}=Map.get_and_update(process_map,:hashTags, fn current_value -> {current_value,current_value++list_of_preferred_hashtags_for_user} end)
          process_map=Map.merge(process_map,state_random_hashTags)
 
-         {_,state_update_list}=Map.get_and_update(state,:users, fn current_value -> {current_value,List.replace_at(state[:users],index,process_map)} end)
-         state=Map.merge(state,state_update_list)
+         #{_,state_update_list}=Map.get_and_update(state,:users, fn current_value -> {current_value,List.replace_at(state[:users],index,process_map)} end)
+         #state=Map.merge(state,state_update_list)
+         users_array_list_update=List.replace_at(users_array_list,index,process_map)
+         :ets.insert(:users,{"users",users_array_list_update})
 
          {:noreply,state}
 
@@ -279,13 +434,20 @@ def handle_call({:get_random_tweet_for_mention,client_name,client_node},_from ,s
         #Take a random user not the same user for retweeting
         #process_map=%{:node_client => nil, :hashTags => [], :password => nil, :has_subscribed_to => [], :is_subscribed_by => [],:name_node => nil, :id => nil}
 
-        user_array_ids=Enum.filter(Enum.map(Enum.with_index(state[:users]),fn({x,i}) ->
+         array_list=:ets.lookup(:users, "users")
+         elem_tuple=Enum.at(array_list,0)
+         users_array_list=elem(elem_tuple,1)
+
+         #IO.puts "#{inspect users_array_list} +++++"
+         #IO.puts "#{inspect array_list} -----"
+
+        user_array_ids=Enum.filter(Enum.map(Enum.with_index(users_array_list),fn({x,i}) ->
                 if(x[:name_node]!= client_name ) do
                         i
                 end end), & !is_nil(&1))
         
         random_user_id_for_given_user=Enum.random(user_array_ids)
-        random_user_map_from_id=Enum.at(state[:users],random_user_id_for_given_user)
+        random_user_map_from_id=Enum.at(users_array_list,random_user_id_for_given_user)
 
         node=client_node
         hashTag=random_hashTag
@@ -304,9 +466,14 @@ end
 
 def handle_cast({:zipf_distribution,client_name,client_node_name,numNodes},state) do
 
-        IO.puts "#{inspect client_node_name} #{inspect client_name}"
+        #IO.puts "#{inspect client_node_name} #{inspect client_name}"
+
+        array_list=:ets.lookup(:users, "users")
+        elem_tuple=Enum.at(array_list,0)
+        users_array_list=elem(elem_tuple,1)
+
       
-        array_list=Enum.filter(Enum.sort(Enum.map(Enum.with_index(state[:users]),fn({x,i})-> 
+        array_list=Enum.filter(Enum.sort(Enum.map(Enum.with_index(users_array_list),fn({x,i})-> 
         {Enum.count(x[:is_subscribed_by]),i,x}end)),& !is_nil(&1))
 
         array_list_final=Enum.filter(Enum.map(Enum.with_index(array_list),fn({x,index})
@@ -335,7 +502,7 @@ def zipf_distribution_for_given_x(x,numNodes,client_name,client_node_name)do
 
         f_x=(c/(:math.pow(x,@s)))
         num_tweets=round((@numTweetsForZipf-1)*f_x)
-        num_tweets_with_mention=round(f_x)
+        num_tweets_with_mention=round(f_x)*@numTweetsForZipf
 
         #IO.inspect num_tweets
         #IO.inspect num_tweets_with_mention
@@ -361,7 +528,12 @@ def zipf_distribution_for_given_x(x,numNodes,client_name,client_node_name)do
 end
 
 def handle_cast({:query,clientNode,clientName},state) do
-    list=Enum.filter(Enum.with_index(state[:users]), fn({x,i}) -> if(x[:node_client]==clientNode and x[:name_node]==clientName) do  i  end end)
+    
+    array_list=:ets.lookup(:users, "users")
+    elem_tuple=Enum.at(array_list,0)
+    users_array_list=elem(elem_tuple,1)
+
+    list=Enum.filter(Enum.with_index(users_array_list), fn({x,i}) -> if(x[:node_client]==clientNode and x[:name_node]==clientName) do  i  end end)
     
     if(length(list)>0) do
         login_query_for_client(state,elem(Enum.at(list,0),1))   
@@ -370,15 +542,40 @@ def handle_cast({:query,clientNode,clientName},state) do
 end
 
 def login_query_for_client(state,index)do
-     userTuple=Enum.at(state[:users],index)
+
+     array_list=:ets.lookup(:users, "users")
+     elem_tuple=Enum.at(array_list,0)
+     users_array_list1=elem(elem_tuple,1)
+
+     tweets_array_list=:ets.lookup(:tweets, "tweets")
+     elem_tuple1=Enum.at(tweets_array_list,0)
+     tweets_array_list1=elem(elem_tuple1,1)
+
+     hashTag_array_list=:ets.lookup(:hashTag, "hashTag")
+     elem_tuple2=Enum.at(hashTag_array_list,0)
+     hashTag_array_list1=elem(elem_tuple2,1)
+
+     reference_array_list=:ets.lookup(:reference, "reference")
+     elem_tuple3=Enum.at(reference_array_list,0)
+     reference_array_list1=elem(elem_tuple3,1)
+
+     tweet_by_user_array_list=:ets.lookup(:tweet_by_user, "tweet_by_user")
+     elem_tuple4=Enum.at(tweet_by_user_array_list,0)
+     tweet_by_user_array_list1=elem(elem_tuple4,1)
+
+     nodes_array_list=:ets.lookup(:nodes, "nodes")
+     elem_tuple5=Enum.at(nodes_array_list,0)
+     nodes_array_list1=elem(elem_tuple5,1)
+
+     userTuple=Enum.at(users_array_list1,index)
     
-     tweets=state[:tweets]
-     hashTag=state[:hashTag]
-     reference=state[:reference]
-     tweet_by_user=state[:tweet_by_user]
+     tweets=tweets_array_list1
+     hashTag=hashTag_array_list1
+     reference=reference_array_list1
+     tweet_by_user=tweet_by_user_array_list1
      user_preferred_hashtags=userTuple[:hashTags]
      user_has_subscibed_to_list=userTuple[:has_subscribed_to]
-     nodes_tweeting=state[:nodes]
+     nodes_tweeting=nodes_array_list1
 
      #IO.inspect "login"
 

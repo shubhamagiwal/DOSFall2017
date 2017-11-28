@@ -1,8 +1,8 @@
 defmodule Project4Part1.Node do
 use GenServer
 
-@numTweets 2
-@numHashTags 10
+@numTweets 1
+@numHashTags 1
 @numberOfSubscriptions 1
 #Server Side Implementation
     def init(args) do  
