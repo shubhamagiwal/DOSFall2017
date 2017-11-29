@@ -1,6 +1,6 @@
 defmodule Project4Part1.Boss do
 use GenServer
-@numTweetsForZipf 1000
+@numTweetsForZipf 100000
 @s 1
 
 
@@ -13,6 +13,7 @@ def init(:ok) do
         :ets.new(:user_mention_tweets, [:bag, :protected, :named_table])
         :ets.new(:retweets, [:bag, :protected, :named_table])
         :ets.new(:user_list, [:set, :protected, :named_table])
+        :ets.new(:client_zipf_details_per_client_node,[:set, :protected, :named_table])
         #:ets.new(:user_list_with_subscription,[:set, :protected, :named_table])
 
         :ets.insert_new(:user_list,{"user_list",[]})
@@ -153,12 +154,11 @@ def handle_cast({:got_tweet,random_tweet,random_hashTag,name_of_user,client_node
         
          # {:ok,%{:start_value=>1,:number_of_tweets_before=>0, :number_of_tweets_after=>0, :number_of_retweets_before=>0,:hashTag=>[]}}
 
-          if(random_hashTag!=nil) do
-               {_,state_hashTag}=Map.get_and_update(state,:hashTag, fn current_value -> {current_value,current_value++[random_hashTag]} end)
-               state=Map.merge(state,state_hashTag)    
-          end
+        {_,state_hashTag}=Map.get_and_update(state,:hashTag, fn current_value -> {current_value,current_value++[random_hashTag]} end)
+        state=Map.merge(state,state_hashTag)    
+          
          
-        #IO.inspect state
+        #IO.inspect "#{inspect random_hashTag} #{inspect state[:hashTag]}"
 
         client_name=name_of_user
         client_node=client_node_name
@@ -341,16 +341,18 @@ def handle_cast({:got_mention_tweet,client_node_name,name_of_user,tweet,hashTag,
 
         {_,reference_1}=Map.get_and_update(process_map_user_mentioner_tweets_table,:reference, fn current_value -> {current_value,reference} end)
         process_map_user_mentioner_tweets_table=Map.merge(process_map_user_mentioner_tweets_table,reference_1)
+
+         {_,reference_node_1}=Map.get_and_update(process_map_user_mentioner_tweets_table,:reference_node, fn current_value -> {current_value,reference_node} end)
+        process_map_user_mentioner_tweets_table=Map.merge(process_map_user_mentioner_tweets_table,reference_node_1)
         
         :ets.insert(:user_mention_tweets,{reference,process_map_user_mentioner_tweets_table})
 
         {_,state_tweets}=Map.get_and_update(state,:number_of_tweets_after, fn current_value -> {current_value,current_value+1} end)
         state=Map.merge(state,state_tweets)
 
-         if(hashTag!=nil) do
-               {_,state_hashTag}=Map.get_and_update(state,:hashTag, fn current_value -> {current_value,current_value++[hashTag]} end)
-               state=Map.merge(state,state_hashTag)    
-          end
+        {_,state_hashTag}=Map.get_and_update(state,:hashTag, fn current_value -> {current_value,current_value++[hashTag]} end)
+        state=Map.merge(state,state_hashTag)    
+          
 
         client_name=name_of_user
         client_node=client_node_name
@@ -484,6 +486,18 @@ def handle_cast({:zipf_distribution,client_name,client_node_name,numNodes},state
 
         {num_tweets,num_tweets_with_mention,f_x}=zipf_distribution_for_given_x(index+1,numNodes,client_name,client_node_name)
 
+        #:client_zipf_details_per_client_node
+        table=:ets.lookup(:client_zipf_details_per_client_node,client_node_name)
+
+        if(length(table)>0)do
+                 user_list=Enum.at(table,0)
+                 users_array_list=elem(user_list,1)
+                 users_array_list=users_array_list++[{client_node_name,client_name,f_x,num_tweets+num_tweets_with_mention}]
+                 :ets.insert(:client_zipf_details_per_client_node,{client_node_name,users_array_list})
+        else
+                :ets.insert(:client_zipf_details_per_client_node,{client_node_name,[{client_node_name,client_name,f_x,num_tweets+num_tweets_with_mention}]})
+        end
+
 
         user_array_list=:ets.lookup(:users,client_name)
         user_list=Enum.at(user_array_list,0)
@@ -500,9 +514,11 @@ def handle_cast({:zipf_distribution,client_name,client_node_name,numNodes},state
          :ets.delete(:users, client_name)
          :ets.insert(:users, {client_name,users_tuple})
 
+         #periodic_print_zipf_distribution(client_node_name)
          {:noreply,state}
 
 end
+
 
 
 
@@ -531,6 +547,7 @@ def start_zipf_distribution()do
                 user_tuple=elem(user_list,1)
 
                 no_of_zipf_tweets=user_tuple[:no_of_zipf_tweets]
+                IO.puts "#{inspect no_of_zipf_tweets} for Client #{inspect elem(x,0)} of #{inspect elem(x,1)}"
 
                 if(no_of_zipf_tweets>0) do 
                         Enum.each(Enum.to_list(1..no_of_zipf_tweets),fn(y) -> GenServer.cast({elem(x,0),elem(x,1)},{:tweet,elem(x,0),elem(x,1),nil})  end)   
@@ -545,6 +562,8 @@ def handle_cast({:query,clientNode,clientName},state) do
                 user_list=Enum.at(user_array_list,0)
                 user_tuple=elem(user_list,1)
 
+                #IO.inspect state[:hashTag]
+
                 #      process_map=%{:node_client => nil, :hashTags => [], :password => nil, :has_subscribed_to => [], :is_subscribed_by => [],:name_node => nil, :id => nil, :no_of_zipf_tweets =>0, :probability_of_zipf_functions=>0, :number_of_subscribers=>0 }
 
                 #User Subscribed to tweets latest 5
@@ -558,9 +577,12 @@ def handle_cast({:query,clientNode,clientName},state) do
 
                 #{:got_a_tweet,Enum.at(tweets,x),Enum.at(hashTag,x),Enum.at(tweet_by_user,x),Enum.at(nodes_tweeting,x),nil,Map.get(userTuple,:name_node),Map.get(userTuple,:node_client)
                 if(length(user_subscribed_latest_tweets_5)>0) do
-                        Enum.each(user_subscribed_latest_tweets_5,fn(x)->
-                        x_tuple=Enum.at(x,0)
+                        array_list=Enum.at(user_subscribed_latest_tweets_5,0)
+                        #IO.inspect array_list
+                        Enum.each(Enum.with_index(array_list),fn({x,i})->
+                        x_tuple=x
                         user_process_map=elem(x_tuple,1)
+                        #IO.inspect user_process_map
                         GenServer.cast({clientName,clientNode},{:got_a_tweet,Map.get(user_process_map,:tweet),Map.get(user_process_map,:hashTag),Map.get(user_process_map,:name_of_user),Map.get(user_process_map,:client_node_name),nil,clientName,clientNode})
                         end)
                 end
@@ -575,9 +597,13 @@ def handle_cast({:query,clientNode,clientName},state) do
                 user_is_subscribed_hashTag=user_tuple[:hashTags]
                 user_hashTag_latest=Enum.map(user_is_subscribed_hashTag,fn(x)-> Enum.take(:ets.lookup(:hashTags,x),-1) end)
 
+                #IO.inspect user_hashTag_latest
+
                  if(length(user_hashTag_latest)>0) do
-                        Enum.each(user_hashTag_latest,fn(x)->
-                        user_process_map=elem(x,1)
+                        array_list=Enum.at(user_hashTag_latest,0)
+                        Enum.each(array_list,fn(x)->
+                        x_tuple=x
+                        user_process_map=elem(x_tuple,1)
                         GenServer.cast({clientName,clientNode},{:got_a_tweet,Map.get(user_process_map,:tweet),Map.get(user_process_map,:hashTag),Map.get(user_process_map,:name_of_user),Map.get(user_process_map,:client_node_name),nil,clientName,clientNode})
                         end)
                 end
@@ -585,9 +611,12 @@ def handle_cast({:query,clientNode,clientName},state) do
                 user_mentioned=:ets.lookup(:user_mention_tweets,clientName)
                 user_mentioned_latest=Enum.take(user_mentioned,-5)
 
+                #IO.inspect user_mentioned_latest
+
                  if(length(user_mentioned_latest)>0) do
                         Enum.each(user_mentioned_latest,fn(x)->
                         user_process_map=elem(x,1)
+                        #IO.inspect user_process_map
                         GenServer.cast({clientName,clientNode},{:got_a_tweet,Map.get(user_process_map,:tweet),Map.get(user_process_map,:hashTag),Map.get(user_process_map,:name_of_user),Map.get(user_process_map,:client_node_name),nil,clientName,clientNode})
                         end)
                 end

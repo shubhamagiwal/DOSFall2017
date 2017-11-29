@@ -209,7 +209,7 @@ use GenServer
 
       def spawn_nodes(numNodes,start_value,l,server_node_name,client_node_name) do
 
-             if(start_value<=numNodes) do
+             if(start_value<numNodes) do
                 name_of_node=Project4Part1.Node.start(start_value,server_node_name,client_node_name)
                 l=l++[name_of_node]
                 create_tweet_for_user(@numTweets,elem(name_of_node,0),1,server_node_name,client_node_name,start_value,nil)
