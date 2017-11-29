@@ -43,6 +43,8 @@ use GenServer
             random_hashTag="#"<>Project4Part1.LibFunctions.randomizer(8,true)
             random_tweet=random_tweet_text<>random_hashTag
 
+            #IO.inspect random_tweet
+
             GenServer.cast({Boss_Server,server_node_name},{:got_tweet,random_tweet,random_hashTag,name_of_user,client_node_name,reference,state[:is_fresh_user]})
 
             # Update the is_fresh_user status to false
@@ -54,6 +56,7 @@ use GenServer
             random_tweet_text=Project4Part1.LibFunctions.randomizer(32,:downcase)
             random_hashTag="#"<>Project4Part1.LibFunctions.randomizer(8,true)
             random_tweet=random_tweet_text<>random_hashTag
+             # IO.inspect random_tweet
             GenServer.cast({Boss_Server,server_node_name},{:got_tweet,random_tweet,random_hashTag,name_of_user,client_node_name,reference,state[:is_fresh_user]})
 
         else
@@ -83,12 +86,14 @@ use GenServer
     def handle_cast({:got_a_tweet,random_tweet,random_hashtag,name_of_user,client_node_name,_,client_name_x,client_node_name_x},state) do
         server_node_name=state[:boss_node]
 
+        #IO.inspect random_tweet
+        #IO.inspect state[:is_logged_in]
         if(state[:is_logged_in]==true) do
             IO.puts "#{inspect client_name_x} of #{inspect client_node_name_x}:Got a tweet #{inspect random_tweet} from  #{inspect name_of_user} of  #{inspect client_node_name} "
             retweet_status=check_for_probability_for_retweet()
 
             if(retweet_status)do
-                GenServer.cast({Boss_Server,server_node_name},{:got_retweet,client_node_name_x,client_name_x,random_tweet,random_hashtag,nil,nil})
+                GenServer.cast({Boss_Server,server_node_name},{:got_retweet,client_node_name_x,client_name_x,random_tweet,random_hashtag,name_of_user,client_node_name})
             end
 
         end
@@ -105,7 +110,7 @@ use GenServer
            retweet_status=check_for_probability_for_retweet()
             
            if(retweet_status)do
-                GenServer.cast({Boss_Server,server_node_name},{:got_retweet,reference_node,reference,tweet,random_hashtag,nil,nil})
+                GenServer.cast({Boss_Server,server_node_name},{:got_retweet,reference_node,reference,tweet,random_hashtag,name_of_user,client_node_name})
            end
         
         end
@@ -134,6 +139,9 @@ use GenServer
         state=Map.merge(state,state_isLoggedIn)
 
         {_,state_isLoggedIn}=Map.get_and_update(state,:clientNode, fn current_value -> {current_value,clientNode} end)
+        state=Map.merge(state,state_isLoggedIn)
+
+        {_,state_isLoggedIn}=Map.get_and_update(state,:is_fresh_user, fn current_value -> {current_value,false} end)
         state=Map.merge(state,state_isLoggedIn)
         
         {:noreply,state}
