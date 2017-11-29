@@ -7,7 +7,7 @@ use GenServer
 #Server Side Implementation
     def init(args) do  
         schedule_periodic_login_and_logout()
-        {:ok,%{:is_logged_in=>true,:is_fresh_user=>true,:boss_node=>args, :clientName => nil, :clientNode => nil }}
+        {:ok,%{:is_logged_in=>true,:is_fresh_user=>true,:boss_node=>args, :clientName => nil, :clientNode => nil, :retweet_list_buffer => [], :tweet_list_buffer => [] , :mention_tweet_buffer => []}}
     end
 
     def schedule_periodic_login_and_logout()do
@@ -72,9 +72,38 @@ use GenServer
         {:noreply,state}
      end
 
+
+
+    def create_buffer(msg, list, start_value, max_length) do
+        if(start_value<max_length) do
+            list = list ++ [msg]
+            create_buffer(msg, list, start_value+1, max_length)
+        end
+        list
+    end 
+
     def handle_cast({:retweet,random_tweet,random_hashtag,name_of_user,client_node_name,reference,reference_node,original_tweet_node,original_tweet_user},state)do
           if(state[:is_logged_in]==true) do
-                IO.puts "#{inspect name_of_user} of #{inspect client_node_name}:Got a retweet #{inspect random_tweet} from  #{inspect original_tweet_user} of  #{inspect original_tweet_node} "
+                # str_reciever = Atom.to_string(name_of_user)
+                # str_sender=Atom.to_string(original_tweet_user)
+                # str_message = str_reciever <> "  got a retweet  " <> random_tweet <> "  from  " <>  str_sender
+                # IO.puts str_message
+                # #IO.puts "#{inspect name_of_user} of #{inspect client_node_name}:Got a retweet #{inspect random_tweet} 
+                # #from  #{inspect original_tweet_user} of  #{inspect original_tweet_node} "
+                str_reciever = Atom.to_string(name_of_user)
+                str_rloc = Atom.to_string(client_node_name)
+                str_sender = Atom.to_string(original_tweet_user)
+                str_sloc=Atom.to_string(original_tweet_node)
+                str_message = str_reciever <> " of "<> str_rloc <>"  got a retweet  " <> random_tweet <> "  from  " <>  str_sender <>" of "  <>  str_sloc
+                
+                {_,state_retweet}=Map.get_and_update(state,:retweet_list_buffer, fn current_value -> {current_value, current_value ++ [str_message]} end)
+                state=Map.merge(state,state_retweet)
+
+                #IO.puts "Retweet_Buffer_Len: #{inspect length(state[:retweet_list_buffer])}"
+
+                #IO.puts "I am here in retweet"
+                #IO.puts "List is here: #{inspect state_retweet}"
+                IO.puts "#{str_message}"
           end
         {:noreply,state}
     end
@@ -83,7 +112,39 @@ use GenServer
         server_node_name=state[:boss_node]
 
         if(state[:is_logged_in]==true) do
-            IO.puts "#{inspect client_name_x} of #{inspect client_node_name_x}:Got a tweet #{inspect random_tweet} from  #{inspect name_of_user} of  #{inspect client_node_name} "
+            # str_reciever = Atom.to_string(client_name_x)
+            # str_sender = Atom.to_string(name_of_user)
+            # str_message = str_reciever <> "  got a tweet  " <> random_tweet <> "  from  " <>  str_sender
+            # IO.puts "#{str_message}"
+            # #IO.puts "#{inspect client_name_x} of #{inspect client_node_name_x}
+            # #:Got a tweet #{inspect random_tweet} from  #{inspect name_of_user} of  #{inspect client_node_name} "
+            str_reciever = Atom.to_string(client_name_x)
+            str_rloc = Atom.to_string(client_node_name_x)
+            str_sender = Atom.to_string(name_of_user)
+            str_sloc=Atom.to_string(client_node_name)
+            str_message = str_reciever <> " of "<> str_rloc <>"  got a tweet  " <> random_tweet <> "  from  " <>  str_sender <> " of "  <>  str_sloc
+            
+            
+            
+            #IO.puts "I am here in tweet"
+            
+            #IO.puts "Tweet_Buffer_Length   #{inspect length(state[:tweet_list_buffer])}"
+
+            length = length(state[:tweet_list_buffer])
+
+            if(length==20) do
+                IO.inspect state[:tweet_list_buffer]
+                {_,state_tweet}=Map.get_and_update(state,:tweet_list_buffer, fn current_value -> {current_value, []} end)
+                state=Map.merge(state,state_tweet)
+                IO.inspect length(state[:tweet_list_buffer])
+            else
+                {_,state_tweet}=Map.get_and_update(state,:tweet_list_buffer, fn current_value -> {current_value, current_value ++ [str_message]} end)
+                state=Map.merge(state,state_tweet)
+            end
+
+            #IO.puts "List is here: #{inspect state_tweet}"
+
+
             retweet_status=check_for_probability_for_retweet()
 
             if(retweet_status)do
@@ -99,7 +160,21 @@ use GenServer
         server_node_name=state[:boss_node]
 
         if(state[:is_logged_in]==true) do
-           IO.puts "#{inspect reference} of #{inspect reference_node}:Got a tweet #{inspect tweet} from  #{inspect name_of_user} of  #{inspect client_node_name} " 
+           
+            str_reciever = Atom.to_string(reference)
+            str_rloc = Atom.to_string(reference_node)
+            str_sender = Atom.to_string(name_of_user)
+            str_sloc=Atom.to_string(client_node_name)
+            str_message = str_reciever <> " of "<> str_rloc <>"  got a tweet  " <> tweet <> "  from  " <>  str_sender <> " of "  <>  str_sloc
+            #IO.puts "#{str_message}"
+
+            {_,state_tweet_mention}=Map.get_and_update(state,:mention_tweet_buffer, fn current_value -> {current_value, current_value ++ [str_message]} end)
+            state=Map.merge(state,state_tweet_mention)
+
+            #IO.puts "Mention_Buffer_Len: #{inspect length(state[:mention_tweet_buffer])}"
+
+            #IO.puts "#{inspect reference} of #{inspect reference_node}:
+            #Got a tweet #{inspect tweet} from  #{inspect name_of_user} of  #{inspect client_node_name} " 
 
            retweet_status=check_for_probability_for_retweet()
             
@@ -175,7 +250,7 @@ use GenServer
         startValue=GenServer.call({Boss_Server,server_name},{:get_start_value},:infinity)
         GenServer.cast({Boss_Server,server_name},{:update_start_value,startValue+numNode})
         l= spawn_nodes(numNode+startValue,startValue,[],server_name,elem(tuple,0))
-        IO.inspect l
+        #IO.inspect l
 
         list=GenServer.call({Boss_Server,server_name},{:get_list_users},:infinity)
         
@@ -185,7 +260,7 @@ use GenServer
 
         random_subscriptions(l,1,server_name)
         random_hashTags_for_a_given_user(server_name,@numHashTags,l,0)
-        IO.puts "Done"
+        #IO.puts "Done"
         #Process.sleep(1_000)
         #GenServer.cast({Boss_Server,server_name},{:here})
         #:retweet,client_node_name,name_of_user
@@ -242,7 +317,7 @@ use GenServer
            random_node_choose=Enum.random(list);
            #IO.inspect random_node_choose
            list=list--[random_node_choose]
-           IO.puts "I am here"
+           #IO.puts "I am here"
            GenServer.cast({Boss_Server,server_name},{:add_subscription_for_given_client_user,random_node_choose,node})
            GenServer.cast({Boss_Server,server_name},{:add_is_subscribed_for_given_client,random_node_choose,node})
            startValue=startValue+1;
