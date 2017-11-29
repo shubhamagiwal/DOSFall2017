@@ -8,11 +8,11 @@ use GenServer
 #Server Side Implementation
     def init(args) do  
         schedule_periodic_login_and_logout()
-        {:ok,%{:is_logged_in=>true,:is_fresh_user=>true,:boss_node=>args, :clientName => nil, :clientNode => nil }}
+        {:ok,%{:is_logged_in=>true,:is_fresh_user=>true,:boss_node=>args, :clientName => nil, :clientNode => nil,:retweet_list_buffer => [], :tweet_list_buffer => [] , :mention_tweet_buffer => [] }}
     end
 
     def schedule_periodic_login_and_logout()do
-        Process.send_after(self(), :periodic_login_and_logout, 2*1000) 
+        Process.send_after(self(), :periodic_login_and_logout, 20*1000) 
     end
 
     def handle_info(:periodic_login_and_logout, state) do
@@ -119,7 +119,7 @@ use GenServer
     end
 
     def check_for_probability_for_retweet() do
-        list=Enum.to_list(1..5)
+        list=Enum.to_list(1..1000)
         value=false
         if(Enum.random(list)==4) do
             value=true
@@ -156,7 +156,7 @@ use GenServer
         {:ok,_} = GenServer.start_link(__MODULE__,server_node_name,name: name_of_node)
         GenServer.cast({name_of_node,Node.self()}, {:update_client_state,name_of_node,Node.self()})
         GenServer.cast({Boss_Server,server_node_name},{:created_user,client_node_name,password,name_of_node,id_tweeter})
-        {name_of_node,client_node_name}
+        {name_of_node,client_node_name,0}
     end
 
     def generate_name(args) do
@@ -189,18 +189,21 @@ use GenServer
         l= spawn_nodes(numNode+startValue,startValue,[],server_name,elem(tuple,0))
         #IO.inspect l
 
+
         list=GenServer.call({Boss_Server,server_name},{:get_list_users},:infinity)
         
-        if(length(list)>0)do
-            l=list
-        end
+        # if(length(list)>0)do
+        #     l=list
+        # end
 
-        random_subscriptions(l,1,server_name)
+        l1=random_subscriptions(l,1,server_name)
+        IO.inspect l1
         random_hashTags_for_a_given_user(server_name,@numHashTags,l,0)
+        GenServer.cast({Boss_Server,server_name},{:increment_numClients,1,numNode,l1,l})
+
         
         #Send an Ack to server
         #Process.sleep(1_0000)
-        GenServer.cast({Boss_Server,server_name},{:increment_numClients,1,numNode,l})
 
         #Enum.each(l,fn({name_node_x,client_node_x})-> GenServer.cast({Boss_Server,server_name},{:zipf_distribution,name_node_x,client_node_x,numNode})  end)
 
@@ -213,7 +216,7 @@ use GenServer
                 name_of_node=Project4Part1.Node.start(start_value,server_node_name,client_node_name)
                 l=l++[name_of_node]
                 create_tweet_for_user(@numTweets,elem(name_of_node,0),1,server_node_name,client_node_name,start_value,nil)
-                {name_of_node_node,client_node_name}=name_of_node
+                {name_of_node_node,client_node_name,_}=name_of_node
                 GenServer.cast({name_of_node_node,client_node_name},{:mention_tweet,client_node_name,name_of_node_node})
                 start_value=start_value+1
                 l=spawn_nodes(numNodes,start_value,l,server_node_name,client_node_name)
@@ -243,15 +246,23 @@ use GenServer
         if(start<=length(list)) do
             listLength=length(list)
             numberList=1..listLength
-            #random_number_subscriptions=Enum.random(numberList)-1
-            random_number_subscriptions=@numberOfSubscriptions
+            random_number_subscriptions=Enum.random(numberList)-1
+            #random_number_subscriptions=@numberOfSubscriptions
             element=Enum.at(list,start-1);
             newList=list--[element]
             #IO.inspect newList
             generate_subscriptions(newList,1,random_number_subscriptions,server_name,element)
+            
+            tuple_1=Tuple.delete_at(element,2)
+            element=Tuple.insert_at(tuple_1, 2,random_number_subscriptions)
+
+            newList=List.delete_at(list,start-1)
+            list=List.insert_at(newList, start-1,element )
+            #elem(list,2)=random_number_subscriptions
             start=start+1
-            random_subscriptions(list, start,server_name) 
+            list=random_subscriptions(list, start,server_name) 
         end
+        list
         
     end
 
