@@ -5,6 +5,7 @@ use GenServer
 @numHashTags 1
 @numberOfSubscriptions 1
 @numTweetsFactor 1
+@numClients 100
 #Server Side Implementation
     def init(args) do  
         schedule_periodic_login_and_logout()
@@ -150,145 +151,45 @@ use GenServer
     #Client Side Implementation
 
     #start process on the given node for a given client node
-    def start(id_tweeter,server_node_name,client_node_name) do
+
+    def start_link()do
+        
+        
+        #Start the Boss Server Process
+        Project4Part2.Boss.start_link()
+
+        #numClients For the given Server
+        numOfClients= @numClients
+        numList=Enum.to_list(1..numOfClients)
+        IO.inspect numList
+
+        l=Enum.each(numList, fn(x)-> start(x) end)
+        IO.inspect l
+       
+        loop()
+    end
+
+    def loop() do
+        loop()
+    end
+
+    def start(id_tweeter) do
         name_of_node=String.to_atom("tweeter@user"<>to_string(id_tweeter))
-        password=Project4Part1.LibFunctions.randomizer(8,true)
-        {:ok,_} = GenServer.start_link(__MODULE__,server_node_name,name: name_of_node)
-        GenServer.cast({name_of_node,Node.self()}, {:update_client_state,name_of_node,Node.self()})
-        GenServer.cast({Boss_Server,server_node_name},{:created_user,client_node_name,password,name_of_node,id_tweeter})
-        {name_of_node,client_node_name,0}
-    end
-
-    def generate_name(args) do
-        machine = to_string("localhost")
-        IO.inspect args
-        ipaddress=to_string(Enum.at(args,1))
-        hex = :erlang.monotonic_time() |>
-          :erlang.phash2(256) |>
-          Integer.to_string(16)
-        String.to_atom("#{machine}-#{hex}@#{ipaddress}")
-    end
-    
-    def start_client(args)do
-        clientName=generate_name(args)
-        {:ok,_}= Node.start(clientName)
-        cookie=Application.get_env(:project1, :cookie)
-        Node.set_cookie(cookie)
-        {Node.self,args}
-    end
-
-    def connect_to_server(tuple)do
-        server_name=String.to_atom(to_string("server@"<> Enum.at(elem(tuple,1),1)))
-        value=Node.connect(server_name)
-        IO.inspect value
-        {numNode,_}=Integer.parse(Enum.at(elem(tuple,1),2))
-        startValue=GenServer.call({Boss_Server,server_name},{:get_start_value},:infinity)
-        #startValue=0
-        GenServer.cast({Boss_Server,server_name},{:update_start_value,startValue+numNode})
-
-        l= spawn_nodes(numNode+startValue,startValue,[],server_name,elem(tuple,0))
-        #IO.inspect l
-
-
-        list=GenServer.call({Boss_Server,server_name},{:get_list_users},:infinity)
+        password=Project4Part2.LibFunctions.randomizer(8,true)
+        {:ok, pid} = PhoenixChannelClient.start_link()        
+        {:ok, socket} = PhoenixChannelClient.connect(pid,host: "0.0.0.0", port: 4000,  path: "/socket/websocket")        
+        channel = PhoenixChannelClient.channel(socket, "pool:client"<>to_string(id_tweeter), %{})
         
-        # if(length(list)>0)do
-        #     l=list
-        # end
-
-        l1=random_subscriptions(l,1,server_name)
-        IO.inspect l1
-        random_hashTags_for_a_given_user(server_name,@numHashTags,l,0)
-        GenServer.cast({Boss_Server,server_name},{:increment_numClients,1,numNode,l1,l})
-
-        
-        #Send an Ack to server
-        #Process.sleep(1_0000)
-
-        #Enum.each(l,fn({name_node_x,client_node_x})-> GenServer.cast({Boss_Server,server_name},{:zipf_distribution,name_node_x,client_node_x,numNode})  end)
-
-
-    end
-
-      def spawn_nodes(numNodes,start_value,l,server_node_name,client_node_name) do
-
-             if(start_value<numNodes) do
-                name_of_node=Project4Part1.Node.start(start_value,server_node_name,client_node_name)
-                l=l++[name_of_node]
-                create_tweet_for_user(@numTweets,elem(name_of_node,0),1,server_node_name,client_node_name,start_value,nil)
-                {name_of_node_node,client_node_name,_}=name_of_node
-                GenServer.cast({name_of_node_node,client_node_name},{:mention_tweet,client_node_name,name_of_node_node})
-                start_value=start_value+1
-                l=spawn_nodes(numNodes,start_value,l,server_node_name,client_node_name)
-             end
-             l  
-      end
-
-      def prob_initial_tweets(numNodes) do
-          array_list=Enum.to_list(1..100)
-          value=false
-          if(Enum.random(array_list)==50)do
-              value=true
-          end
-          value
-      end
-    
-      def create_tweet_for_user(numtweets,name_of_user,start_value,server_node_name,client_node_name,id_tweeter,reference)do
-            if(start_value<=numtweets)do
-                GenServer.cast({name_of_user,client_node_name},{:tweet,name_of_user,client_node_name,reference})
-                start_value=start_value+1
-                create_tweet_for_user(numtweets,name_of_user,start_value,server_node_name,client_node_name,id_tweeter,reference)
-            end
-      end
-
-    def random_subscriptions(list, start,server_name) do
-
-        if(start<=length(list)) do
-            listLength=length(list)
-            numberList=1..listLength
-            random_number_subscriptions=Enum.random(numberList)-1
-            #random_number_subscriptions=@numberOfSubscriptions
-            element=Enum.at(list,start-1);
-            newList=list--[element]
-            #IO.inspect newList
-            generate_subscriptions(newList,1,random_number_subscriptions,server_name,element)
-            
-            tuple_1=Tuple.delete_at(element,2)
-            element=Tuple.insert_at(tuple_1, 2,random_number_subscriptions)
-
-            newList=List.delete_at(list,start-1)
-            list=List.insert_at(newList, start-1,element )
-            #elem(list,2)=random_number_subscriptions
-            start=start+1
-            list=random_subscriptions(list, start,server_name) 
+        case PhoenixChannelClient.join(channel) do
+            {:ok, message} -> IO.inspect(message)
+            {:error, %{"reason" => reason}} -> IO.puts(reason)
+            :timeout -> IO.puts("timeout")
         end
-        list
-        
-    end
 
-    def generate_subscriptions(list,startValue,random_number_subscriptions,server_name,node)do
-       if(startValue<=random_number_subscriptions) do
-           random_node_choose=Enum.random(list);
-           #IO.inspect random_node_choose
-           list=list--[random_node_choose]
-           #IO.puts "I am here"
-           GenServer.cast({Boss_Server,server_name},{:add_subscription_for_given_client_user,random_node_choose,node})
-           GenServer.cast({Boss_Server,server_name},{:add_is_subscribed_for_given_client,random_node_choose,node})
-           startValue=startValue+1;
-           generate_subscriptions(list,startValue,random_number_subscriptions,server_name,node)
-       end 
-    end
+        PhoenixChannelClient.push(channel, "new_msg", %{text: "Hello"})
+        GenServer.cast(Boss_Server, {:print,"Awesome"})
 
-    def random_hashTags_for_a_given_user(servername,numHashTags,list,start) do
-        
-        if(start<=length(list)) do
-            element=Enum.at(list,start-1);
-            GenServer.cast({Boss_Server,servername},{:assign_hashTags_to_user,numHashTags,element})
-            start=start+1
-            random_hashTags_for_a_given_user(servername, numHashTags,list,start) 
-        end
+        {name_of_node,socket,channel}
     end
-
     
-
 end

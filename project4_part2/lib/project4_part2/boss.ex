@@ -6,12 +6,7 @@ use GenServer
 
 def start_link()do
         GenServer.start_link(__MODULE__,:ok, name: Boss_Server)   
-        loop()
 end
-
-def loop() do
-        loop()
-end 
 
 def handle_cast({:print,value},state)do
         IO.inspect value

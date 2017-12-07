@@ -1,9 +1,9 @@
-defmodule Project4Part2.Mixfile do
+defmodule Example1.Mixfile do
   use Mix.Project
 
   def project do
     [
-      app: :project4_part2,
+      app: :example1,
       version: "0.0.1",
       elixir: "~> 1.4",
       elixirc_paths: elixirc_paths(Mix.env),
@@ -18,7 +18,7 @@ defmodule Project4Part2.Mixfile do
   # Type `mix help compile.app` for more information.
   def application do
     [
-      mod: {Project4Part2.Application, []},
+      mod: {Example1.Application, []},
       extra_applications: [:logger, :runtime_tools]
     ]
   end
@@ -39,7 +39,6 @@ defmodule Project4Part2.Mixfile do
       {:gettext, "~> 0.11"},
       {:cowboy, "~> 1.0"},
       {:phoenixchannelclient, "~> 0.1.0"}
-      
     ]
   end
 end
