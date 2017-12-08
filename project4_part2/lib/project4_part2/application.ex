@@ -13,7 +13,9 @@ defmodule Project4Part2.Application do
       # Start the endpoint when the application starts
       supervisor(Project4Part2Web.Endpoint, []),
       # Start your own worker by calling: Project4Part2.Worker.start_link(arg1, arg2, arg3)
-       worker(Project4Part2.Node, [])       
+      # worker(Project4Part2.Node, []) 
+      worker(Project4Part2.Boss, []) 
+
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

@@ -1,17 +1,15 @@
 defmodule Project4Part2.Boss do
 use GenServer
+use Project4Part2Web, :channel
+
 @numTweetsForZipf 100
 @s 1
 
 
 def start_link()do
-        GenServer.start_link(__MODULE__,:ok, name: Boss_Server)   
+        GenServer.start_link(__MODULE__,:ok, name: Boss_Server)  
 end
 
-def handle_cast({:print,value},state)do
-        IO.inspect value
-        {:noreply,state}
-end
 
 def init(:ok) do
         schedule_periodic_computation_for_tweets_and_retweets()
@@ -56,16 +54,6 @@ def handle_info(:periodic_computation_for_tweets_and_retweets, state) do
         {:noreply, state}
 end
 
-def handle_call({:get_start_value}, _from, state) do
-   {:reply,state[:start_value],state}
-end
-
-def handle_cast({:update_start_value,newValue},state)do
-      {_,state_start_value}=Map.get_and_update(state,:start_value, fn current_value -> {current_value,newValue} end)
-      state=Map.merge(state,state_start_value)
-      {:noreply,state}
-end
-
 def handle_call({:get_list_users},_from,state)do
         array_list=:ets.lookup(:user_list, "user_list")
         elem_tuple=Enum.at(array_list,0)
@@ -73,37 +61,42 @@ def handle_call({:get_list_users},_from,state)do
         {:reply,list,state} 
 end
 
-def handle_cast({:created_user,node_client,password,name_node,id},state)do
+def handle_cast({:created_user,clientName,password,id,socket},state)do
 
-      process_map=%{:node_client => nil, :hashTags => [], :password => nil, :has_subscribed_to => [], :is_subscribed_by => [],:name_node => nil, :id => nil, :no_of_zipf_tweets =>0, :probability_of_zipf_functions=>0, :number_of_subscribers=>0 }
+      id=String.to_integer(id)
 
-      {_,state_name_node}=Map.get_and_update(process_map,:name_node, fn current_value -> {current_value,name_node} end)
+      process_map=%{:socket => nil, :hashTags => [], :password => nil, :has_subscribed_to => [], :is_subscribed_by => [],:name_node => nil, :id => nil, :no_of_zipf_tweets =>0, :probability_of_zipf_functions=>0, :number_of_subscribers=>0 }
+
+      {_,state_name_node}=Map.get_and_update(process_map,:name_node, fn current_value -> {current_value,clientName} end)
       process_map=Map.merge(process_map,state_name_node)
 
       {_,state_password}=Map.get_and_update(process_map,:password, fn current_value -> {current_value,password} end)
       process_map=Map.merge(process_map,state_password)
 
-      {_,state_node_client}=Map.get_and_update(process_map,:node_client, fn current_value -> {current_value,node_client} end)
-      process_map=Map.merge(process_map,state_node_client)
-
       {_,state_id}=Map.get_and_update(process_map,:id, fn current_value -> {current_value,id} end)
       process_map=Map.merge(process_map,state_id)
+
+      {_,state_socket}=Map.get_and_update(process_map,:socket, fn current_value -> {current_value,socket} end)
+      process_map=Map.merge(process_map,state_socket)
+
 
       #Update the user_list with the client and node tuple
       #{name_of_node,client_node_name}
         array_list=:ets.lookup(:user_list, "user_list")
         elem_tuple=Enum.at(array_list,0)
         list=elem(elem_tuple,1)
-        list=list++[{name_node,node_client,0}]
+        list=list++[{clientName,socket,0}]
         :ets.insert(:user_list,{"user_list",list})
 
         #Added it to the users table
-        :ets.insert(:users,{name_node,process_map})
+        :ets.insert(:users,{clientName,process_map})
+        IO.inspect process_map
+        IO.inspect self()
 
       {:noreply,state}
 end
 
-def handle_cast({:got_tweet,random_tweet,random_hashTag,name_of_user,client_node_name,reference,isFreshUser},state)do
+def handle_cast({:got_tweet,random_tweet,random_hashTag,name_of_user,reference,isFreshUser,socket},state)do
 
         # :ets.new(:users, [:bag, :protected, :named_table])
         # :ets.new(:hashTags, [:bag, :protected, :named_table])
@@ -116,7 +109,7 @@ def handle_cast({:got_tweet,random_tweet,random_hashTag,name_of_user,client_node
 
         #IO.inspect random_tweet
 
-        process_map_tweets_table=%{:tweet => nil, :hashTag => nil, :name_of_user => nil, :client_node_name => nil, :reference => nil,:reference_node=>nil}
+        process_map_tweets_table=%{:tweet => nil, :hashTag => nil, :name_of_user => nil, :socket => nil, :reference => nil,:reference_node=>nil}
 
         {_,random_tweet_1}=Map.get_and_update(process_map_tweets_table,:tweet, fn current_value -> {current_value,random_tweet} end)
         process_map_tweets_table=Map.merge(process_map_tweets_table,random_tweet_1)
@@ -127,8 +120,8 @@ def handle_cast({:got_tweet,random_tweet,random_hashTag,name_of_user,client_node
         {_,name_of_user_1}=Map.get_and_update(process_map_tweets_table,:name_of_user, fn current_value -> {current_value,name_of_user} end)
         process_map_tweets_table=Map.merge(process_map_tweets_table,name_of_user_1)
 
-        {_,client_node_name_1}=Map.get_and_update(process_map_tweets_table,:client_node_name, fn current_value -> {current_value,client_node_name} end)
-        process_map_tweets_table=Map.merge(process_map_tweets_table,client_node_name_1)
+        {_,name_of_socket_1}=Map.get_and_update(process_map_tweets_table,:socket, fn current_value -> {current_value,socket} end)
+        process_map_tweets_table=Map.merge(process_map_tweets_table,name_of_socket_1)
 
         {_,reference_1}=Map.get_and_update(process_map_tweets_table,:reference, fn current_value -> {current_value,reference} end)
         process_map_tweets_table=Map.merge(process_map_tweets_table,reference_1)
@@ -139,7 +132,7 @@ def handle_cast({:got_tweet,random_tweet,random_hashTag,name_of_user,client_node
 
         #Change only HashTags 
 
-        process_map_hashTag_table=%{:tweet => nil, :hashTag => nil, :name_of_user => nil, :client_node_name => nil, :reference => nil,:reference_node=>nil}
+        process_map_hashTag_table=%{:tweet => nil, :hashTag => nil, :name_of_user => nil, :socket => nil, :reference => nil,:reference_node=>nil}
 
         {_,random_tweet_1}=Map.get_and_update(process_map_hashTag_table,:tweet, fn current_value -> {current_value,random_tweet} end)
         process_map_hashTag_table=Map.merge(process_map_hashTag_table,random_tweet_1)
@@ -150,8 +143,8 @@ def handle_cast({:got_tweet,random_tweet,random_hashTag,name_of_user,client_node
         {_,name_of_user_1}=Map.get_and_update(process_map_hashTag_table,:name_of_user, fn current_value -> {current_value,name_of_user} end)
         process_map_hashTag_table=Map.merge(process_map_hashTag_table,name_of_user_1)
 
-        {_,client_node_name_1}=Map.get_and_update(process_map_hashTag_table,:client_node_name, fn current_value -> {current_value,client_node_name} end)
-        process_map_hashTag_table=Map.merge(process_map_hashTag_table,client_node_name_1)
+        {_,client_socket}=Map.get_and_update(process_map_hashTag_table,:client_node_name, fn current_value -> {current_value,socket} end)
+        process_map_hashTag_table=Map.merge(process_map_hashTag_table,client_socket)
 
         {_,reference_1}=Map.get_and_update(process_map_hashTag_table,:reference, fn current_value -> {current_value,reference} end)
         process_map_hashTag_table=Map.merge(process_map_hashTag_table,reference_1)
@@ -170,36 +163,25 @@ def handle_cast({:got_tweet,random_tweet,random_hashTag,name_of_user,client_node
         #IO.inspect "#{inspect random_hashTag} #{inspect state[:hashTag]}"
 
         client_name=name_of_user
-        client_node=client_node_name
-
-
-        # Find the is subscribed user for the given client
-
-        #Format of the output
-        #[tweeter@user1: :"localhost-20@10.3.6.63",
-        # tweeter@user2: :"localhost-20@10.3.6.63",
-        # tweeter@user3: :"localhost-20@10.3.6.63",
-        # tweeter@user6: :"localhost-20@10.3.6.63",
-        # tweeter@user9: :"localhost-20@10.3.6.63"]
-        #IO.inspect isFreshUser
+        
         if(isFreshUser!=true) do
-           is_subscribed_by=get_a_list_of_is_subscribed_by_for_given_client(client_name,client_node,state)
+           is_subscribed_by=get_a_list_of_is_subscribed_by_for_given_client(client_name,state)
            #{:got_a_tweet,random_tweet,random_hashtag,name_of_user,client_node_name,_,client_name_x,client_node_name_x}
-           Enum.each(is_subscribed_by,fn({client_name_x,client_node_name_x,y}) -> GenServer.cast({client_name_x,client_node_name_x},{:got_a_tweet,random_tweet,random_hashTag,name_of_user,client_node_name,reference,client_name_x,client_node_name_x})  end)
+           Enum.each(is_subscribed_by,fn({client_name_x,socket_x,0}) -> 
+                
+                #:got_tweet,random_tweet,random_hashTag,name_of_user,reference,isFreshUser,socket
+
+                GenServer.cast({client_name_x},{:got_a_tweet,random_tweet,random_hashTag,name_of_user,reference,client_name_x,socket_x})  end)
         end 
 
         {:noreply,state}
 end
 
-def get_a_list_of_is_subscribed_by_for_given_client(client_name,client_node,state) do
-        #index=Enum.find_index(state[:users], fn(x) -> x[:node_client] == client_node and x[:name_node]== client_name end)
+def get_a_list_of_is_subscribed_by_for_given_client(client_name,state) do
         array_list=:ets.lookup(:users,client_name)
         elem_tuple=Enum.at(array_list,0)
         users_tuple=elem(elem_tuple,1)
         is_subscribed_by=users_tuple[:is_subscribed_by]
-        #IO.inspect is_subscribed_by
-        #IO.inspect is_subscribed_by
-
         is_subscribed_by
 end
 
@@ -225,7 +207,7 @@ def handle_cast({:add_subscription_for_given_client_user,random_node_choose,node
          {:noreply,state}
 end
 
-def handle_cast({:got_retweet,client_node_name,name_of_user,tweet,hashTag,reference,reference_node},state) do
+def handle_cast({:got_retweet,client_name,tweet,hashTag,reference,original_tweeter,socket},state) do
 
         # :ets.new(:users, [:bag, :protected, :named_table])
         # :ets.new(:hashTags, [:bag, :protected, :named_table])
@@ -236,7 +218,7 @@ def handle_cast({:got_retweet,client_node_name,name_of_user,tweet,hashTag,refere
 
        #Change Tweets Table
 
-        process_map_tweets_table=%{:tweet => nil, :hashTag => nil, :name_of_user => nil, :client_node_name => nil, :reference => nil,reference_node=>nil}
+        process_map_tweets_table=%{:tweet => nil, :hashTag => nil, :name_of_user => nil, :socket => nil, :reference => nil,:reference_node=>nil,:original_tweeter=>nil}
 
         {_,random_tweet_1}=Map.get_and_update(process_map_tweets_table,:tweet, fn current_value -> {current_value,tweet} end)
         process_map_tweets_table=Map.merge(process_map_tweets_table,random_tweet_1)
@@ -244,25 +226,25 @@ def handle_cast({:got_retweet,client_node_name,name_of_user,tweet,hashTag,refere
         {_,hashTag_1}=Map.get_and_update(process_map_tweets_table,:hashTag, fn current_value -> {current_value,hashTag} end)
         process_map_tweets_table=Map.merge(process_map_tweets_table,hashTag_1)
 
-        {_,name_of_user_1}=Map.get_and_update(process_map_tweets_table,:name_of_user, fn current_value -> {current_value,name_of_user} end)
+        {_,name_of_user_1}=Map.get_and_update(process_map_tweets_table,:name_of_user, fn current_value -> {current_value,client_name} end)
         process_map_tweets_table=Map.merge(process_map_tweets_table,name_of_user_1)
 
-        {_,client_node_name_1}=Map.get_and_update(process_map_tweets_table,:client_node_name, fn current_value -> {current_value,client_node_name} end)
-        process_map_tweets_table=Map.merge(process_map_tweets_table,client_node_name_1)
+        {_,client_socket_1}=Map.get_and_update(process_map_tweets_table,:socket, fn current_value -> {current_value,socket} end)
+        process_map_tweets_table=Map.merge(process_map_tweets_table,client_socket_1)
 
         {_,reference_1}=Map.get_and_update(process_map_tweets_table,:reference, fn current_value -> {current_value,reference} end)
         process_map_tweets_table=Map.merge(process_map_tweets_table,reference_1)
 
-        {_,reference_node_1}=Map.get_and_update(process_map_tweets_table,:reference, fn current_value -> {current_value,reference_node} end)
-        process_map_tweets_table=Map.merge(process_map_tweets_table,reference_node_1)
+        {_,original_tweeter_1}=Map.get_and_update(process_map_tweets_table,:original_tweeter, fn current_value -> {current_value,original_tweeter} end)
+        process_map_tweets_table=Map.merge(process_map_tweets_table,original_tweeter_1)
         
-        :ets.insert(:tweets,{name_of_user,process_map_tweets_table})
+        :ets.insert(:tweets,{client_name,process_map_tweets_table})
 
         ############################################################################
 
         #Change only Retweets Table 
 
-        process_map_retweets_table=%{:tweet => nil, :hashTag => nil, :name_of_user => nil, :client_node_name => nil, :reference => nil,:reference_node=>nil}
+        process_map_retweets_table=%{:tweet => nil, :hashTag => nil, :name_of_user => nil, :socket => nil, :reference => nil,:reference_node=>nil,:original_tweeter=>nil}
 
         {_,random_tweet_1}=Map.get_and_update(process_map_retweets_table,:tweet, fn current_value -> {current_value,tweet} end)
         process_map_retweets_table=Map.merge(process_map_retweets_table,random_tweet_1)
@@ -270,36 +252,33 @@ def handle_cast({:got_retweet,client_node_name,name_of_user,tweet,hashTag,refere
         {_,hashTag_1}=Map.get_and_update(process_map_retweets_table,:hashTag, fn current_value -> {current_value,hashTag} end)
         process_map_retweets_table=Map.merge(process_map_retweets_table,hashTag_1)
 
-        {_,name_of_user_1}=Map.get_and_update(process_map_retweets_table,:name_of_user, fn current_value -> {current_value,name_of_user} end)
+        {_,name_of_user_1}=Map.get_and_update(process_map_retweets_table,:name_of_user, fn current_value -> {current_value,client_name} end)
         process_map_retweets_table=Map.merge(process_map_retweets_table,name_of_user_1)
 
-        {_,client_node_name_1}=Map.get_and_update(process_map_retweets_table,:client_node_name, fn current_value -> {current_value,client_node_name} end)
-        process_map_retweets_table=Map.merge(process_map_retweets_table,client_node_name_1)
+        {_,client_socket_1}=Map.get_and_update(process_map_retweets_table,:client_node_name, fn current_value -> {current_value,socket} end)
+        process_map_retweets_table=Map.merge(process_map_retweets_table,client_socket_1)
 
         {_,reference_1}=Map.get_and_update(process_map_retweets_table,:reference, fn current_value -> {current_value,reference} end)
         process_map_retweets_table=Map.merge(process_map_retweets_table,reference_1)
 
-        {_,reference_node_1}=Map.get_and_update(process_map_retweets_table,:reference, fn current_value -> {current_value,reference_node} end)
-        process_map_retweets_table=Map.merge(process_map_retweets_table,reference_node_1)
+         {_,original_tweeter_1}=Map.get_and_update(process_map_retweets_table,:original_tweeter, fn current_value -> {current_value,original_tweeter} end)
+         process_map_retweets_table=Map.merge(process_map_retweets_table,original_tweeter_1)
         
-        :ets.insert(:retweets,{name_of_user,process_map_retweets_table})
+        :ets.insert(:retweets,{client_name,process_map_retweets_table})
 
         #########################################################################################
 
         {_,state_retweets}=Map.get_and_update(state,:number_of_retweets_after, fn current_value -> {current_value,current_value+1} end)
         state=Map.merge(state,state_retweets)
 
-        client_name=name_of_user
-        client_node=client_node_name
-
         #Get its subscribed user and send the given retweet 
-        is_subscribed_by=get_a_list_of_is_subscribed_by_for_given_client(client_name,client_node,state)
-        Enum.each(is_subscribed_by,fn({client_name_x,client_node_name_x,_}) -> GenServer.cast({client_name_x,client_node_name_x},{:retweet,tweet,hashTag,client_name_x,client_node_name_x,reference,reference_node,client_node_name,name_of_user})  end)
+        is_subscribed_by=get_a_list_of_is_subscribed_by_for_given_client(client_name,state)
+        Enum.each(is_subscribed_by,fn({client_name_x,socket_x,value}) -> GenServer.cast({client_name_x},{:retweet,tweet,hashTag,client_name_x,nil,reference,nil,nil,original_tweeter,socket_x,client_name})  end)
 
         {:noreply,state}
 end
 
-def handle_cast({:got_mention_tweet,client_node_name,name_of_user,tweet,hashTag,reference,reference_node},state) do
+def handle_cast({:got_mention_tweet,name_of_user,tweet,hashTag,reference,socket},state) do
 
         
         # :ets.new(:users, [:bag, :protected, :named_table])
@@ -311,7 +290,7 @@ def handle_cast({:got_mention_tweet,client_node_name,name_of_user,tweet,hashTag,
 
         #Change Tweets Table
 
-        process_map_tweets_table=%{:tweet => nil, :hashTag => nil, :name_of_user => nil, :client_node_name => nil, :reference => nil,reference_node=>nil}
+        process_map_tweets_table=%{:tweet => nil, :hashTag => nil, :name_of_user => nil, :socket => nil, :reference => nil,:reference_node=>nil}
 
         {_,random_tweet_1}=Map.get_and_update(process_map_tweets_table,:tweet, fn current_value -> {current_value,tweet} end)
         process_map_tweets_table=Map.merge(process_map_tweets_table,random_tweet_1)
@@ -322,8 +301,8 @@ def handle_cast({:got_mention_tweet,client_node_name,name_of_user,tweet,hashTag,
         {_,name_of_user_1}=Map.get_and_update(process_map_tweets_table,:name_of_user, fn current_value -> {current_value,name_of_user} end)
         process_map_tweets_table=Map.merge(process_map_tweets_table,name_of_user_1)
 
-        {_,client_node_name_1}=Map.get_and_update(process_map_tweets_table,:client_node_name, fn current_value -> {current_value,client_node_name} end)
-        process_map_tweets_table=Map.merge(process_map_tweets_table,client_node_name_1)
+        {_,socket_1}=Map.get_and_update(process_map_tweets_table,:socket, fn current_value -> {current_value,socket} end)
+        process_map_tweets_table=Map.merge(process_map_tweets_table,socket_1)
 
         {_,reference_1}=Map.get_and_update(process_map_tweets_table,:reference, fn current_value -> {current_value,reference} end)
         process_map_tweets_table=Map.merge(process_map_tweets_table,reference_1)
@@ -334,7 +313,7 @@ def handle_cast({:got_mention_tweet,client_node_name,name_of_user,tweet,hashTag,
 
         #Change only user Mentioned Tweets 
 
-        process_map_user_mentioner_tweets_table=%{:tweet => nil, :hashTag => nil, :name_of_user => nil, :client_node_name => nil, :reference => nil,:reference_node=>nil}
+        process_map_user_mentioner_tweets_table=%{:tweet => nil, :hashTag => nil, :name_of_user => nil, :socket => nil, :reference => nil,:reference_node=>nil}
 
         {_,random_tweet_1}=Map.get_and_update(process_map_user_mentioner_tweets_table,:tweet, fn current_value -> {current_value,tweet} end)
         process_map_user_mentioner_tweets_table=Map.merge(process_map_user_mentioner_tweets_table,random_tweet_1)
@@ -345,14 +324,11 @@ def handle_cast({:got_mention_tweet,client_node_name,name_of_user,tweet,hashTag,
         {_,name_of_user_1}=Map.get_and_update(process_map_user_mentioner_tweets_table,:name_of_user, fn current_value -> {current_value,name_of_user} end)
         process_map_user_mentioner_tweets_table=Map.merge(process_map_user_mentioner_tweets_table,name_of_user_1)
 
-        {_,client_node_name_1}=Map.get_and_update(process_map_user_mentioner_tweets_table,:client_node_name, fn current_value -> {current_value,client_node_name} end)
-        process_map_user_mentioner_tweets_table=Map.merge(process_map_user_mentioner_tweets_table,client_node_name_1)
+        {_,client_socket_1}=Map.get_and_update(process_map_user_mentioner_tweets_table,:socket, fn current_value -> {current_value,socket} end)
+        process_map_user_mentioner_tweets_table=Map.merge(process_map_user_mentioner_tweets_table,client_socket_1)
 
         {_,reference_1}=Map.get_and_update(process_map_user_mentioner_tweets_table,:reference, fn current_value -> {current_value,reference} end)
         process_map_user_mentioner_tweets_table=Map.merge(process_map_user_mentioner_tweets_table,reference_1)
-
-         {_,reference_node_1}=Map.get_and_update(process_map_user_mentioner_tweets_table,:reference_node, fn current_value -> {current_value,reference_node} end)
-        process_map_user_mentioner_tweets_table=Map.merge(process_map_user_mentioner_tweets_table,reference_node_1)
         
         :ets.insert(:user_mention_tweets,{reference,process_map_user_mentioner_tweets_table})
 
@@ -364,14 +340,13 @@ def handle_cast({:got_mention_tweet,client_node_name,name_of_user,tweet,hashTag,
           
 
         client_name=name_of_user
-        client_node=client_node_name
 
         #Get its subscribed user and send the given tweet
-        is_subscribed_by=get_a_list_of_is_subscribed_by_for_given_client(client_name,client_node,state)
-        Enum.each(is_subscribed_by,fn({client_name_x,client_node_name_x,_}) -> GenServer.cast({client_name_x,client_node_name_x},{:got_a_tweet,tweet,hashTag,name_of_user,client_node_name,reference,client_name_x,client_node_name_x})  end)
+        is_subscribed_by=get_a_list_of_is_subscribed_by_for_given_client(client_name,state)
+        Enum.each(is_subscribed_by,fn({client_name_x,socket_x,value}) -> GenServer.cast({client_name_x},{:got_a_tweet,tweet,hashTag,name_of_user,nil,client_name_x,socket_x})  end)
 
         #Send the mention tweet to user to the reference
-        GenServer.cast({reference,reference_node},{:got_a_tweet_with_mention,reference,reference_node,name_of_user,client_node_name,tweet,hashTag})
+        GenServer.cast({reference},{:got_a_tweet_with_mention,reference,nil,name_of_user,nil,tweet,hashTag})
 
         {:noreply,state}
 end
@@ -391,23 +366,8 @@ def handle_cast({:add_is_subscribed_for_given_client,random_node_choose,node},st
          users_tuple_is_subscribed_to=users_tuple[:is_subscribed_by]
          users_tuple_is_subscribed_to=users_tuple_is_subscribed_to++[node]
 
-        #  array_list=:ets.lookup(:user_list, "user_list")
-        #  elem_tuple=Enum.at(array_list,0)
-        #  list=elem(elem_tuple,1)
 
-        #  new_user_list=Enum.map(list,fn(x)-> 
-        #         if(elem(x,0)==client_name and elem(x,1)==client_node) do 
-        #                 value=elem(x,2)
-        #                 value=value+1
-        #                 {elem(x,0),elem(x,1),value}
-        #         else
-        #                 x
-        #   end end)
-
-        #   :ets.delete(:user_list, "user_list")
-        #   :ets.insert(:user_list, {"user_list",new_user_list})
-
-         #      process_map=%{:node_client => nil, :hashTags => [], :password => nil, :has_subscribed_to => [], :is_subscribed_by => [],:name_node => nil, :id => nil, :no_of_zipf_tweets =>0, :probability_of_zipf_functions=>0, :number_of_subscribers=>0 }
+         #process_map=%{:node_client => nil, :hashTags => [], :password => nil, :has_subscribed_to => [], :is_subscribed_by => [],:name_node => nil, :id => nil, :no_of_zipf_tweets =>0, :probability_of_zipf_functions=>0, :number_of_subscribers=>0 }
 
          users_tuple_number_of_subscribers=users_tuple[:number_of_subscribers]
          users_tuple_number_of_subscribers=users_tuple_number_of_subscribers+1;
@@ -456,8 +416,8 @@ end
 def handle_call({:get_random_tweet_for_mention,client_name,client_node},_from ,state) do
 
         #Tweet details
-        random_tweet_text=Project4Part1.LibFunctions.randomizer(32,:downcase)
-        random_hashTag="#"<>Project4Part1.LibFunctions.randomizer(8,true)
+        random_tweet_text=Project4Part2.LibFunctions.randomizer(32,:downcase)
+        random_hashTag="#"<>Project4Part2.LibFunctions.randomizer(8,true)
         
         #Take a random user not the same user for retweeting
 
@@ -608,11 +568,15 @@ def start_zipf_distribution()do
 end
 
 
-def handle_cast({:query,clientNode,clientName},state) do
+def handle_cast({:query,clientName,socket},state) do
+
+                IO.inspect " I am logged in"
                 
                 user_array_list=:ets.lookup(:users,clientName)
                 user_list=Enum.at(user_array_list,0)
                 user_tuple=elem(user_list,1)
+
+                IO.inspect user_tuple
 
                 #IO.inspect state[:hashTag]
 
@@ -635,7 +599,7 @@ def handle_cast({:query,clientNode,clientName},state) do
                         x_tuple=x
                         user_process_map=elem(x_tuple,1)
                         #IO.inspect user_process_map
-                        GenServer.cast({clientName,clientNode},{:got_a_tweet,Map.get(user_process_map,:tweet),Map.get(user_process_map,:hashTag),Map.get(user_process_map,:name_of_user),Map.get(user_process_map,:client_node_name),nil,clientName,clientNode})
+                        GenServer.cast(clientName,{:got_a_tweet,Map.get(user_process_map,:tweet),Map.get(user_process_map,:hashTag),Map.get(user_process_map,:name_of_user),nil,clientName,nil})
                         end)
                 end
 
@@ -656,7 +620,8 @@ def handle_cast({:query,clientNode,clientName},state) do
                         Enum.each(array_list,fn(x)->
                         x_tuple=x
                         user_process_map=elem(x_tuple,1)
-                        GenServer.cast({clientName,clientNode},{:got_a_tweet,Map.get(user_process_map,:tweet),Map.get(user_process_map,:hashTag),Map.get(user_process_map,:name_of_user),Map.get(user_process_map,:client_node_name),nil,clientName,clientNode})
+                        #    def handle_cast({:got_a_tweet,random_tweet,random_hashtag,original_tweeter,_,client_name_x,_},state) do
+                        GenServer.cast({clientName},{:got_a_tweet,Map.get(user_process_map,:tweet),Map.get(user_process_map,:hashTag),Map.get(user_process_map,:name_of_user),nil,clientName,nil})
                         end)
                 end
 
@@ -668,10 +633,12 @@ def handle_cast({:query,clientNode,clientName},state) do
                  if(length(user_mentioned_latest)>0) do
                         Enum.each(user_mentioned_latest,fn(x)->
                         user_process_map=elem(x,1)
-                        #IO.inspect user_process_map
-                        GenServer.cast({clientName,clientNode},{:got_a_tweet,Map.get(user_process_map,:tweet),Map.get(user_process_map,:hashTag),Map.get(user_process_map,:name_of_user),Map.get(user_process_map,:client_node_name),nil,clientName,clientNode})
+                        #    def handle_cast({:got_a_tweet,random_tweet,random_hashtag,original_tweeter,_,client_name_x,_},state) do
+                         GenServer.cast({clientName},{:got_a_tweet,Map.get(user_process_map,:tweet),Map.get(user_process_map,:hashTag),Map.get(user_process_map,:name_of_user),nil,clientName,nil})
                         end)
                 end
+
+                push socket, "print", %{data: "helli"}
 
         {:noreply,state}
 end

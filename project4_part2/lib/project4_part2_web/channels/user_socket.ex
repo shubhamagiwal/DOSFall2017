@@ -3,7 +3,6 @@ defmodule Project4Part2Web.UserSocket do
 
   ## Channels
    channel "pool:*", Project4Part2Web.PoolChannel
-   channel "server:*", Project4Part2Web.ServerChannel
 
   ## Transports
   transport :websocket, Phoenix.Transports.WebSocket
