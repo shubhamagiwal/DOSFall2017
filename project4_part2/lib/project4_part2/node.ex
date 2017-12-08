@@ -1,5 +1,6 @@
 defmodule Project4Part2.Node do
 use GenServer
+use Project4Part2Web.ChannelCase, async: true
 use Project4Part2Web, :channel
 
 
@@ -10,8 +11,13 @@ use Project4Part2Web, :channel
 @numClients 100
 #Server Side Implementation
     def init(args) do 
-        schedule_periodic_login_and_logout()
+        #schedule_periodic_login_and_logout()
         {:ok,%{:is_logged_in=>true,:is_fresh_user=>true,:socket=> nil, :name_of_node => nil}}
+    end
+
+    def handle_cast({:print},state)do
+        IO.inspect "I mage"
+        {:noreply,state}
     end
 
     def handle_cast({:update_socket_detail,socket,name_of_node},state)do
@@ -55,12 +61,14 @@ use Project4Part2Web, :channel
         {:noreply,state}
     end
 
-    def handle_cast({:got_a_tweet,random_tweet,random_hashtag,original_tweeter,_,client_name_x,_},state) do
+    def handle_cast({:got_a_tweet,random_tweet,random_hashtag,original_tweeter,reference,client_name_x,socket},state) do
+        
+        IO.inspect state[:is_logged_in]
+        IO.inspect state[:socket]
 
         if(state[:is_logged_in]==true) do
+            IO.inspect state[:socket]
             push state[:socket],"got_tweet",%{ original_tweeter: original_tweeter, tweet: random_tweet, hashTag: random_hashtag, receiver: client_name_x }
-
-
             retweet_status=check_for_probability_for_retweet()
 
             if(retweet_status)do
@@ -107,9 +115,8 @@ use Project4Part2Web, :channel
         name_of_node=String.to_atom("tweeter@user"<>to_string(id_tweeter))
         #IO.inspect name_of_node
         #IO.inspect socket
-        GenServer.start_link(__MODULE__,id_tweeter,name: name_of_node)
+        {:ok,pid}=GenServer.start_link(__MODULE__,id_tweeter,name: name_of_node)
         GenServer.cast(name_of_node, {:update_socket_detail,socket,name_of_node})
-        {name_of_node}
+        {name_of_node,pid}
     end
-
 end

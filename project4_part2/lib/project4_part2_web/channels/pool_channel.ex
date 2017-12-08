@@ -8,21 +8,23 @@ defmodule Project4Part2Web.PoolChannel do
   end
 
   def handle_in("create_user",%{"id"=> id},socket)do
-      clientName=String.to_atom("tweeter@user"<>id)
+      #clientName=String.to_atom("tweeter@user"<>to_string(id))
       password=Project4Part2.LibFunctions.randomizer(8,true)        
-      Project4Part2.Node.start_client(String.to_integer(id),socket)
-      #IO.inspect socket
+      clientName=Project4Part2.Node.start_client(id,socket)
       GenServer.cast(Boss_Server,{:created_user,clientName,password,id,socket})
       {:reply, :ok, socket}
   end
 
-  def handle_in(:tweet,  %{
+  # def handle_in("subscribe",)
+
+  def handle_in("tweet",  %{
       "name_of_user" => client_name,
       "hashTag" => hashTag,
       "tweet" => tweet,
       "reference" => reference,
       "isFreshUser" => isFreshUser
   }, socket) do
+      #IO.inspect "I am here "
       GenServer.cast(Boss_Server,{:got_tweet,tweet,hashTag,client_name,reference,isFreshUser,socket})
       {:reply,:ok,socket}
       #{:noreply, socket}
@@ -44,6 +46,7 @@ defmodule Project4Part2Web.PoolChannel do
     end
 
     def handle_in("got_tweet",  %{"original_tweeter" => original_tweeter, "tweet" => tweet, "hashTag" => hashTag, "receiver" => receiver}, socket) do
+      IO.puts " I am here "
       IO.puts "#{inspect receiver} :Got a tweet #{inspect tweet} from  #{inspect original_tweeter} using socket #{inspect socket}"
       {:reply,:ok,socket}
     end

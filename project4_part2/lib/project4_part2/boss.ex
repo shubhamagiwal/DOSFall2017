@@ -61,9 +61,20 @@ def handle_call({:get_list_users},_from,state)do
         {:reply,list,state} 
 end
 
-def handle_cast({:created_user,clientName,password,id,socket},state)do
+def handle_cast({:update_list,list},state)do
+        array_list=:ets.lookup(:user_list, "user_list")
+        :ets.delete(:user_list,"userList")
+        :ets.insert(:user_list,{"user_list",list})
 
-      id=String.to_integer(id)
+        #IO.inspect list
+
+        # Enum.each(list,fn({clientName,socket_x,value,pid})-> 
+        #                 IO.inspect clientName 
+        #                 GenServer.cast(pid,{:print}) end)
+        {:noreply,state}     
+end
+
+def handle_cast({:created_user,clientName,password,id,socket},state)do
 
       process_map=%{:socket => nil, :hashTags => [], :password => nil, :has_subscribed_to => [], :is_subscribed_by => [],:name_node => nil, :id => nil, :no_of_zipf_tweets =>0, :probability_of_zipf_functions=>0, :number_of_subscribers=>0 }
 
@@ -89,9 +100,10 @@ def handle_cast({:created_user,clientName,password,id,socket},state)do
         :ets.insert(:user_list,{"user_list",list})
 
         #Added it to the users table
+        #IO.inspect process_map
         :ets.insert(:users,{clientName,process_map})
-        IO.inspect process_map
-        IO.inspect self()
+        #IO.inspect process_map
+        #IO.inspect self()
 
       {:noreply,state}
 end
@@ -107,7 +119,8 @@ def handle_cast({:got_tweet,random_tweet,random_hashTag,name_of_user,reference,i
 
         #Change Tweets Table
 
-        #IO.inspect random_tweet
+        
+       # Process.sleep(1_000)
 
         process_map_tweets_table=%{:tweet => nil, :hashTag => nil, :name_of_user => nil, :socket => nil, :reference => nil,:reference_node=>nil}
 
@@ -166,12 +179,20 @@ def handle_cast({:got_tweet,random_tweet,random_hashTag,name_of_user,reference,i
         
         if(isFreshUser!=true) do
            is_subscribed_by=get_a_list_of_is_subscribed_by_for_given_client(client_name,state)
+           #IO.inspect is_subscribed_by
            #{:got_a_tweet,random_tweet,random_hashtag,name_of_user,client_node_name,_,client_name_x,client_node_name_x}
-           Enum.each(is_subscribed_by,fn({client_name_x,socket_x,0}) -> 
+           Enum.each(is_subscribed_by,fn({client_name_x,socket_x,value,pid}) -> 
                 
-                #:got_tweet,random_tweet,random_hashTag,name_of_user,reference,isFreshUser,socket
+                #:got_a_tweet,random_tweet,random_hashtag,original_tweeter,_,client_name_x,_
+                #    def handle_cast({:got_a_tweet,random_tweet,random_hashtag,original_tweeter,reference,client_name_x,socket},state) do
 
-                GenServer.cast({client_name_x},{:got_a_tweet,random_tweet,random_hashTag,name_of_user,reference,client_name_x,socket_x})  end)
+               # IO.inspect client_name_x
+               # IO.puts "#{inspect Process.whereis(client_name_x)} #{inspect client_name_x}"
+               # GenServer.cast(pid,{:print})
+                GenServer.cast(pid,{:got_a_tweet,random_tweet,random_hashTag,name_of_user,reference,client_name_x,socket_x})
+                Process.sleep(1_000)
+                
+            end)
         end 
 
         {:noreply,state}
@@ -179,6 +200,7 @@ end
 
 def get_a_list_of_is_subscribed_by_for_given_client(client_name,state) do
         array_list=:ets.lookup(:users,client_name)
+        #IO.inspect array_list
         elem_tuple=Enum.at(array_list,0)
         users_tuple=elem(elem_tuple,1)
         is_subscribed_by=users_tuple[:is_subscribed_by]
@@ -188,11 +210,12 @@ end
 def handle_cast({:add_subscription_for_given_client_user,random_node_choose,node},state)do
          # process_map=%{:node_client => nil, :hashTags => [], :password => nil, :has_subscribed_to => [], :is_subscribed_by => [],:name_node => nil, :id => nil}
          client_name=elem(node,0)
-         client_node=elem(node,1)
 
          array_list=:ets.lookup(:users, client_name)
          elem_tuple=Enum.at(array_list,0)
+         #IO.inspect client_name
          users_tuple=elem(elem_tuple,1)
+         #IO.inspect users_tuple
 
          users_tuple_has_subscribed_to=users_tuple[:has_subscribed_to]
          users_tuple_has_subscribed_to=users_tuple_has_subscribed_to++[random_node_choose]
@@ -357,7 +380,6 @@ def handle_cast({:add_is_subscribed_for_given_client,random_node_choose,node},st
 
 
          client_name=elem(random_node_choose,0)
-         client_node=elem(random_node_choose,1)
 
          array_list=:ets.lookup(:users, client_name)
          elem_tuple=Enum.at(array_list,0)
@@ -366,11 +388,14 @@ def handle_cast({:add_is_subscribed_for_given_client,random_node_choose,node},st
          users_tuple_is_subscribed_to=users_tuple[:is_subscribed_by]
          users_tuple_is_subscribed_to=users_tuple_is_subscribed_to++[node]
 
+         #IO.inspect node
+
 
          #process_map=%{:node_client => nil, :hashTags => [], :password => nil, :has_subscribed_to => [], :is_subscribed_by => [],:name_node => nil, :id => nil, :no_of_zipf_tweets =>0, :probability_of_zipf_functions=>0, :number_of_subscribers=>0 }
 
          users_tuple_number_of_subscribers=users_tuple[:number_of_subscribers]
          users_tuple_number_of_subscribers=users_tuple_number_of_subscribers+1;
+
          
          
          {_,state_random_is_subscribed_by}=Map.get_and_update(users_tuple,:is_subscribed_by, fn current_value -> {current_value,users_tuple_is_subscribed_to} end)
@@ -382,6 +407,8 @@ def handle_cast({:add_is_subscribed_for_given_client,random_node_choose,node},st
          :ets.delete(:users, client_name)
          :ets.insert(:users, {client_name,users_tuple})
 
+         #IO.inspect users_tuple
+
          {:noreply,state}
 end
 
@@ -391,7 +418,7 @@ def handle_cast({:assign_hashTags_to_user,numHashTags,element}, state) do
 
 
          client_name=elem(element,0)
-         client_node=elem(element,1)
+         #client_node=elem(element,1)
 
          array_list=:ets.lookup(:users, client_name)
          elem_tuple=Enum.at(array_list,0)
@@ -409,6 +436,7 @@ def handle_cast({:assign_hashTags_to_user,numHashTags,element}, state) do
 
          :ets.delete(:users, client_name)
          :ets.insert(:users, {client_name,users_tuple})
+         #IO.inspect users_tuple
          {:noreply,state}
 
 end
@@ -570,13 +598,14 @@ end
 
 def handle_cast({:query,clientName,socket},state) do
 
-                IO.inspect " I am logged in"
+                #IO.inspect " I am logged in"
                 
                 user_array_list=:ets.lookup(:users,clientName)
                 user_list=Enum.at(user_array_list,0)
+                #IO.inspect user_list
+                
                 user_tuple=elem(user_list,1)
 
-                IO.inspect user_tuple
 
                 #IO.inspect state[:hashTag]
 
@@ -638,7 +667,7 @@ def handle_cast({:query,clientName,socket},state) do
                         end)
                 end
 
-                push socket, "print", %{data: "helli"}
+                #push socket, "print", %{data: "helli"}
 
         {:noreply,state}
 end
