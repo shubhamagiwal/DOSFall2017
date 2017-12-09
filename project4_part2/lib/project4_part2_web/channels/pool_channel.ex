@@ -17,7 +17,6 @@ defmodule Project4Part2Web.PoolChannel do
   end
 
   def handle_in("subscribe",%{"node" => node , "random_node_choose" => random_node_choose},socket)do
-    #IO.inspect node
     GenServer.cast(Boss_Server,{:add_subscription_for_given_client_user,random_node_choose,node})
     GenServer.cast(Boss_Server,{:add_is_subscribed_for_given_client,random_node_choose,node})
     #Successful subscription Response is send to the Socket
@@ -60,10 +59,9 @@ defmodule Project4Part2Web.PoolChannel do
       "tweet" => tweet,
       "isFreshUser" => isFreshUser,
       "pid" => pid
-   }, socket) do
-      #GenServer.cast(Boss_Server,{:got_mention_tweet,tweet,hashTag,client_name,reference,reference_pid,isFreshUser,socket,pid})
-      #IO.puts "{\"topic\":\"pool:client\",\"ref\":\"1\",\"payload\":{\"response\":\"#{client_name} has tweeted the given tweet \"#{tweet}\" with the given hashtag \"#{hashTag}\"\"},\"join_ref\":\"null\",\"event\":\"tweet\"}" 
-      IO.puts "Retweeting"     
+    }, socket) do 
+      GenServer.cast(Boss_Server,{:got_retweet,tweet,hashTag,client_name,isFreshUser,socket,pid})
+      IO.puts "{\"topic\":\"pool:client\",\"ref\":\"1\",\"payload\":{\"response\":\"#{client_name} has retweeted the given tweet \"#{tweet}\" with the given hashtag \"#{hashTag}\"\"},\"join_ref\":\"null\",\"event\":\"retweet\"}" 
       {:reply,:ok,socket}
      end
 
@@ -71,7 +69,6 @@ defmodule Project4Part2Web.PoolChannel do
     "node" => node ,
     "hashTag" => list_of_preferred_hashtags_for_user
   },socket)do
-    #IO.inspect node
     GenServer.cast(Boss_Server,{:assign_hashTags_to_user,node,list_of_preferred_hashtags_for_user,elem(node,3)})
     response=to_string(elem(node,0))<>" has subscribed to the list of hashtags as follows "<> to_string(Enum.join(list_of_preferred_hashtags_for_user, ","))    
     IO.puts "{\"topic\":\"pool:client\",\"ref\":\"1\",\"payload\":{\"response\":\"#{response}\"},\"join_ref\":\"null\",\"event\":\"subscribe_hashTag\"}"      
@@ -79,37 +76,19 @@ defmodule Project4Part2Web.PoolChannel do
     {:reply,:ok,socket}
   end
 
-    def handle_in("login",%{"client_name" => client_name},socket)do
-      GenServer.cast(Boss_Server,{:query,client_name})
+  def handle_in("login",%{"client_name" => client_name,"pid" => pid},socket)do
+      GenServer.cast(pid,{:update_status,true,socket,client_name,pid})
+      response=to_string(client_name)<>" has logged in"      
+      IO.puts "{\"topic\":\"pool:client\",\"ref\":\"1\",\"payload\":{\"response\":\"#{response}\"},\"join_ref\":\"null\",\"event\":\"login\"}"      
       {:reply,:ok,socket}
-    end
+  end
 
-    # def handle_in("got_tweet",  %{"original_tweeter" => original_tweeter, "tweet" => tweet, "hashTag" => hashTag, "receiver" => receiver}, socket) do
-    #   IO.puts " I am here "
-    #   IO.puts "#{inspect receiver} :Got a tweet #{inspect tweet} from  #{inspect original_tweeter} using socket #{inspect socket}"
-    #   {:noreply,socket}
-    # end
-
-    # def handle_in("got_mention_tweet",  
-    # %{"reference"=> reference, "name_of_user"=> name_of_user, "tweet"=>tweet, "random_hashtag"=> random_hashtag}, socket) do
-    #   IO.puts "#{inspect reference} :Got a tweet #{inspect tweet} from  #{inspect name_of_user} using socket #{inspect socket}" 
-    #   {:reply,:ok,socket}
-    # end
-
-    # def handle_in("got_retweet",  
-    # %{ "tweet" => tweet, "hashTag" => hashtag, "receiver"=> receiver,"client_name_retweeting" => client_name_retweeting  }, socket) do
-    #   IO.puts "#{inspect receiver} :Got a retweet #{inspect tweet} from  #{inspect client_name_retweeting} using socket #{inspect socket}" 
-    #   {:reply,:ok,socket}
-    # end
-
-    # def handle_in("print",payload,socket)do
-    #   IO.puts "I am here"
-
-    #   {:noreply,socket}
-
-    # end
-
-
+  def handle_in("logout",%{"client_name"=> client_name, "pid"=> pid},socket)do
+    GenServer.cast(pid,{:update_status,false,socket,client_name,pid})
+    response=to_string(client_name)<>" has logged out"      
+    IO.puts "{\"topic\":\"pool:client\",\"ref\":\"1\",\"payload\":{\"response\":\"#{response}\"},\"join_ref\":\"null\",\"event\":\"logout\"}"      
+    {:reply,:ok,socket}
+  end
 
     #Client Process Communication
 
@@ -119,9 +98,38 @@ defmodule Project4Part2Web.PoolChannel do
       {:ok,%{:is_logged_in=>true,:is_fresh_user=>true,:socket=> nil, :name_of_node => nil}}
   end
 
-  def handle_cast({:print},state)do
-      IO.inspect "I mage"
-      {:noreply,state}
+  def handle_cast({:update_status,status,socket,client_name,pid},state)do
+    
+    #IO.inspect "I am here #{inspect client_name} for #{status}"
+    
+    if(status==true)do
+      #IO.inspect "Entered"
+      response=to_string(client_name)<>" has logged in" 
+      push socket,"login",%{response: response}
+      #IO.inspect "I am here #{inspect client_name} for #{status} entered completed"
+
+      {_,state_random_is_fresh_user}=Map.get_and_update(state,:is_logged_in, fn current_value -> {current_value,true} end)
+      state=Map.merge(state,state_random_is_fresh_user)
+      #IO.inspect "I am here2"
+      
+
+      GenServer.cast(Boss_Server,{:query,client_name,pid,socket})
+
+    else
+      #IO.inspect "I am here #{inspect client_name} for #{status} entered"
+      
+      response=to_string(client_name)<>" has logged out" 
+      push socket,"logout",%{response: response}
+
+      {_,state_random_is_fresh_user}=Map.get_and_update(state,:is_logged_in, fn current_value -> {current_value,false} end)
+      state=Map.merge(state,state_random_is_fresh_user)
+
+      #IO.inspect "I am here #{inspect client_name} for #{status} left"
+      
+
+    end 
+
+    {:noreply,state}
   end
 
   def handle_cast({:update_socket_detail,socket,name_of_node},state)do
@@ -144,22 +152,40 @@ defmodule Project4Part2Web.PoolChannel do
           #Do Logout
           {_,state_random_is_fresh_user}=Map.get_and_update(state,:is_logged_in, fn current_value -> {current_value,false} end)
           state=Map.merge(state,state_random_is_fresh_user)
+
+          response=to_string(state[:name_of_node])<>" has logged out" 
+          push state[:socket],"logout",%{response: response}
+
+          IO.puts "{\"topic\":\"pool:client\",\"ref\":\"1\",\"payload\":{\"response\":\"#{response}\"},\"join_ref\":\"null\",\"event\":\"logout\"}"      
+          
+   
       else
           #Do Login
           {_,state_random_is_fresh_user}=Map.get_and_update(state,:is_logged_in, fn current_value -> {current_value,true} end)
           state=Map.merge(state,state_random_is_fresh_user)    
+
+          response=to_string(state[:name_of_node])<>" has logged in" 
+          push state[:socket],"login",%{response: response}
+
+          GenServer.cast(Boss_Server,{:query,state[:name_of_node],self(),state[:socket]})
+
+          IO.puts "{\"topic\":\"pool:client\",\"ref\":\"1\",\"payload\":{\"response\":\"#{response}\"},\"join_ref\":\"null\",\"event\":\"login\"}"      
+          
+
           #IO.inspect state[:clientName]
-          login(state)
+          #login(state)
 
       end
-      schedule_periodic_login_and_logout() 
+      #schedule_periodic_login_and_logout() 
       {:noreply, state}
   end
 
-  def handle_cast({:retweet,random_tweet,random_hashtag,name_of_user,client_node_name,reference,reference_node,original_tweet_node,original_tweet_user,socket,client_name_retweeting},state)do
+  def handle_cast({:got_a_retweet,tweet,hashTag,client_name,reference,client_name_x,socket_x,pid_x},state)do
         
         if(state[:is_logged_in]==true) do
-              push state[:socket],"got_retweet",%{ tweet: random_tweet, hashTag: random_hashtag, receiver: name_of_user,client_name_retweeting: client_name_retweeting}
+              payload=to_string(client_name_x)<>" has got a tweet \""<> tweet <>"\" with given hashtag \""<>hashTag<>"\""<>" from user \""<>to_string(client_name)<>"\""
+              #IO.inspect client_name
+              IO.puts "{\"topic\":\"pool:client\",\"ref\":\"1\",\"payload\":{\"response\":\"#{payload}\"},\"join_ref\":\"null\",\"event\":\"got_a_retweet\"}"  
         end
 
       {:noreply,state}
@@ -179,12 +205,6 @@ defmodule Project4Part2Web.PoolChannel do
           retweet_status=check_for_probability_for_retweet()
 
           if(retweet_status)do
-              # GenServer.cast(Boss_Server,{:got_retweet,client_name_x,random_tweet,random_hashtag,nil,original_tweeter,state[:socket]})
-              # "name_of_user" => client_name,
-              # "hashTag" => hashTag,
-              # "tweet" => tweet,
-              # "isFreshUser" => isFreshUser,
-              # "pid" => pid,
               Project4Part2Web.PoolChannelTest.retweet(client_name_x,random_hashtag,random_tweet,false,pid,socket)
           end
 
@@ -197,14 +217,6 @@ defmodule Project4Part2Web.PoolChannel do
       if(state[:is_logged_in]==true) do
            payload=to_string(reference)<>" has got a tweet \""<> tweet <>"\" with given hashtag \""<>random_hashtag<>"\""<>" from user \""<>to_string(name_of_user)<>"\""
            IO.puts "{\"topic\":\"pool:client\",\"ref\":\"1\",\"payload\":{\"response\":\"#{payload}\"},\"join_ref\":\"null\",\"event\":\"got_mention_tweet\"}"  
-        
-        #  if(retweet_status)do
-        #       #:got_retweet,client_name,random_tweet,random_hashtag,reference,original_tweeter,socket}
-        #       GenServer.cast(Boss_Server,{:got_retweet,name_of_user,tweet,random_hashtag,reference,name_of_user,state[:socket]})
-        #  end
-
-           
-      
       end
 
        {:noreply,state}
@@ -218,17 +230,9 @@ defmodule Project4Part2Web.PoolChannel do
       end
       value
   end
-  
-  def login(state)do
-      #IO.inspect " I am login"
-      GenServer.cast(Boss_Server,{:query,state[:name_of_node],state[:socket]})
-      #push state[:socket], "login", %{client_name: state[:name_of_node]}
-  end
 
   def start_client(id_tweeter,socket) do
       name_of_node=String.to_atom("tweeter:user"<>to_string(id_tweeter))
-      #IO.inspect name_of_node
-      #IO.inspect socket
       {:ok,pid}=GenServer.start_link(__MODULE__,id_tweeter,name: name_of_node)
       GenServer.cast(name_of_node, {:update_socket_detail,socket,name_of_node})
       {name_of_node,pid}
