@@ -545,7 +545,7 @@ def zipf_distribution(client_name,client_node_name,numNodes,list) do
         #  elem_tuple=Enum.at(array_list,0)
         #  list=elem(elem_tuple,1)
 
-        #IO.inspect list
+        # IO.inspect list
 
         #  process_map=%{:node_client => nil, :hashTags => [], :password => nil, :has_subscribed_to => [], :is_subscribed_by => [],:name_node => nil, :id => nil, :no_of_zipf_tweets =>0, :probability_of_zipf_functions=>0, :number_of_subscribers=>0 }
 

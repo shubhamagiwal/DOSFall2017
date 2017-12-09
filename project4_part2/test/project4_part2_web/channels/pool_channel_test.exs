@@ -125,7 +125,7 @@ defmodule Project4Part2Web.PoolChannelTest do
      
   end)
 
-  #Start the periodic login and logout functionality of the given user
+  #Start the  login and logout functionality of the given user
   Enum.each(list,fn({clientName,socket_x,value,pid}) -> 
 
     push socket_x,"logout",%{
@@ -141,11 +141,6 @@ defmodule Project4Part2Web.PoolChannelTest do
   end)
 
   
-    
-
-
-
-    #Logout and  the given user
 
     {:ok, socket: list}
   end
