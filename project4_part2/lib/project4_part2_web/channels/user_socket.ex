@@ -20,6 +20,7 @@ defmodule Project4Part2Web.UserSocket do
   # See `Phoenix.Token` documentation for examples in
   # performing token verification on connect.
   def connect(_params, socket) do
+    IO.inspect socket
     {:ok, socket}
   end
 
@@ -34,4 +35,5 @@ defmodule Project4Part2Web.UserSocket do
   #
   # Returning `nil` makes this socket anonymous.
   def id(_socket), do: nil
+
 end
