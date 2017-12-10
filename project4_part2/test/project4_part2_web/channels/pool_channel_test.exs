@@ -2,10 +2,10 @@ defmodule Project4Part2Web.PoolChannelTest do
   use Project4Part2Web.ChannelCase, async: true
   use GenServer
   alias Project4Part2Web.PoolChannel
-  require IEx
 
   @numNodes 10
   @numHashTags 1
+  @random_number_subscriptions 1
 
   setup do
 
@@ -19,7 +19,7 @@ defmodule Project4Part2Web.PoolChannelTest do
     end)
 
     #Creating the users 
-    list=Enum.map(socket_list,fn({socket_x,index})-> 
+    Enum.map(socket_list,fn({socket_x,index})-> 
         push socket_x,"create_user",%{"id"=> index}
         Process.sleep(1_000) 
         {0,0}      
@@ -29,7 +29,7 @@ defmodule Project4Part2Web.PoolChannelTest do
     
 
     # Creating the initial tweets without any subscriptions
-    Enum.each(list,fn({clientName,socket_x,value,pid})->
+    Enum.each(list,fn({clientName,socket_x,_,pid})->
       
       tweet=Project4Part2.LibFunctions.randomizer(32,true)
       hashTag=Project4Part2.LibFunctions.randomizer(8,true)
@@ -61,11 +61,12 @@ defmodule Project4Part2Web.PoolChannelTest do
 
 
     # Tweet each user another set of tweets after all the initial setup
-    Enum.each(list,fn({clientName,socket_x,value,pid}) -> 
+    Enum.each(list,fn({clientName,socket_x,_,pid}) -> 
       
       tweet=Project4Part2.LibFunctions.randomizer(32,true)
       hashTag=Project4Part2.LibFunctions.randomizer(8,true)
       tweet=tweet<>" #"<>hashTag
+      hashTag="#"<>hashTag
 
 
       push socket_x,"tweet",%{
@@ -79,26 +80,14 @@ defmodule Project4Part2Web.PoolChannelTest do
 
     end)
 
-  #   # Tweet each user another set of tweets after all the initial setup
-  #   Enum.each(list,fn({clientName,socket_x,value,pid}) -> 
-      
-  #     tweet=Project4Part2.LibFunctions.randomizer(32,true)
-  #     hashTag=Project4Part2.LibFunctions.randomizer(8,true)
-  #     tweet=tweet<>" #"<>hashTag
+
+    #Calculate Zipf Tweets 
+    IO.puts "Started computing with the Zipf Tweets for the simulation"
+    GenServer.cast(Boss_Server,{:calculate_zipf_tweets,list,length(list)})
+    
 
 
-  #     push socket_x,"tweet",%{
-  #      "name_of_user" => clientName,
-  #      "hashTag" => hashTag,
-  #      "tweet" => tweet,
-  #      "reference" => nil,
-  #      "isFreshUser" => false,
-  #      "pid" => pid
-  #    }
-
-  #   end)
-
-     # Tweet each user @mention of tweets after all the initial setup
+    # Tweet each user @mention of tweets after all the initial setup
      Enum.each(list,fn({clientName,socket_x,value,pid}) -> 
       
       tweet=Project4Part2.LibFunctions.randomizer(32,true)
@@ -109,6 +98,7 @@ defmodule Project4Part2Web.PoolChannelTest do
 
       tweet=tweet<>" #"<>hashTag
       tweet= tweet<> " @"<>to_string(elem(random_user,0))
+      hashTag="#"<>hashTag
 
 
       push socket_x,"mention_tweet",%{
@@ -126,7 +116,7 @@ defmodule Project4Part2Web.PoolChannelTest do
   end)
 
   #Start the  login and logout functionality of the given user
-  Enum.each(list,fn({clientName,socket_x,value,pid}) -> 
+  Enum.each(list,fn({clientName,socket_x,_,pid}) -> 
 
     push socket_x,"logout",%{
       "client_name" => clientName,
@@ -140,7 +130,10 @@ defmodule Project4Part2Web.PoolChannelTest do
    
   end)
 
-  
+  # Start Zipf Distribution
+  GenServer.cast(Boss_Server,{:zipf_distribution})
+
+
 
     {:ok, socket: list}
   end
@@ -152,11 +145,11 @@ defmodule Project4Part2Web.PoolChannelTest do
 
   def random_subscriptions(list, start) do
     if(start<=length(list)) do
-        listLength=length(list)
-        numberList=1..listLength
+        #listLength=length(list)
+        #numberList=1..listLength
         #random_number_subscriptions=Enum.random(numberList)-1
-        random_number_subscriptions=1
-        element=Enum.at(list,start-1);
+        random_number_subscriptions=@random_number_subscriptions
+        element=Enum.at(list,start-1)
         newList=list--[element]
         generate_subscriptions(newList,1,random_number_subscriptions,element)
         

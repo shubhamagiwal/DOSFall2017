@@ -12,7 +12,7 @@ end
 
 
 def init(:ok) do
-        #schedule_periodic_computation_for_tweets_and_retweets()
+        schedule_periodic_computation_for_tweets_and_retweets()
         #ETS start
         :ets.new(:users, [:bag, :protected, :named_table])
         :ets.new(:hashTags, [:bag, :protected, :named_table])
@@ -450,8 +450,6 @@ def handle_cast({:add_is_subscribed_for_given_client,random_node_choose,node},st
          users_tuple_number_of_subscribers=users_tuple[:number_of_subscribers]
          users_tuple_number_of_subscribers=users_tuple_number_of_subscribers+1;
 
-         
-         
          {_,state_random_is_subscribed_by}=Map.get_and_update(users_tuple,:is_subscribed_by, fn current_value -> {current_value,users_tuple_is_subscribed_to} end)
          users_tuple=Map.merge(users_tuple,state_random_is_subscribed_by)
 
@@ -531,43 +529,24 @@ def handle_call({:get_random_tweet_for_mention,client_name,client_node},_from ,s
         #{:noreply,state}
 end
 
-def zipf_distribution(client_name,client_node_name,numNodes,list) do
+def zipf_distribution(client_name,numNodes,list) do
 
-
-        # :ets.new(:users, [:bag, :protected, :named_table])
-        # :ets.new(:hashTags, [:bag, :protected, :named_table])
-        # :ets.new(:tweets, [:bag, :protected, :named_table])
-        # :ets.new(:user_mention_tweets, [:bag, :protected, :named_table])
-        # :ets.new(:retweets, [:bag, :protected, :named_table])
-        # :ets.new(:user_list, [:set, :protected, :named_table])
-
-        #  array_list=:ets.lookup(:user_list, "user_list")
-        #  elem_tuple=Enum.at(array_list,0)
-        #  list=elem(elem_tuple,1)
-
-        # IO.inspect list
 
         #  process_map=%{:node_client => nil, :hashTags => [], :password => nil, :has_subscribed_to => [], :is_subscribed_by => [],:name_node => nil, :id => nil, :no_of_zipf_tweets =>0, :probability_of_zipf_functions=>0, :number_of_subscribers=>0 }
-
+        #list = [{clientName,socket_x,value,pid}]
         array_list=Enum.filter(Enum.sort(Enum.map(Enum.with_index(list),fn({x,i})-> 
-        
         user_array_list=:ets.lookup(:users,elem(x,0))
         elem_tuple=Enum.at(user_array_list,0)
         user_tuple=elem(elem_tuple,1)
-
-        #IO.inspect user_tuple
-
         {user_tuple[:number_of_subscribers],x}end)),& !is_nil(&1))
 
 
         array_list=Enum.reverse(array_list)
-        #IO.inspect array_list
-
-        #{name_node,node_client,0}
-
+  
+         #list = [{4,{clientName,socket_x,value,pid}}]
         array_list_final=Enum.filter(Enum.map(Enum.with_index(array_list),fn({x,index})
-        -> if(elem(elem(x,1),1)==client_node_name and elem(elem(x,1),0)==client_name) 
-        do {elem(x,0),index,elem(elem(x,1),1),elem(elem(x,1),0)} end end),& !is_nil(&1))
+        -> if(elem(elem(x,1),0)==client_name) 
+        do {elem(x,0),index,elem(elem(x,1),1),elem(elem(x,1),0),elem(elem(x,1),2),elem(elem(x,1),3)} end end),& !is_nil(&1))
 
         #IO.inspect array_list_final
 
@@ -575,30 +554,11 @@ def zipf_distribution(client_name,client_node_name,numNodes,list) do
         #IO.inspect  number_of_subscribers
         index=elem(Enum.at(array_list_final,0),1)   
 
-        {num_tweets,num_tweets_with_mention,f_x}=zipf_distribution_for_given_x(index+1,numNodes,client_name,client_node_name)
-
-       # IO.puts "#{inspect client_name} #{inspect client_node_name} #{inspect num_tweets+num_tweets_with_mention}"
-
-        #:client_zipf_details_per_client_node
-        table=:ets.lookup(:client_zipf_details_per_client_node,client_node_name)
-
-        if(length(table)>0)do
-                 user_list=Enum.at(table,0)
-                 users_array_list=elem(user_list,1)
-                 users_array_list=users_array_list++[{client_node_name,client_name,f_x,num_tweets+num_tweets_with_mention}]
-                 :ets.insert(:client_zipf_details_per_client_node,{client_node_name,users_array_list})
-        else
-                :ets.insert(:client_zipf_details_per_client_node,{client_node_name,[{client_node_name,client_name,f_x,num_tweets+num_tweets_with_mention}]})
-        end
-
+        {num_tweets,num_tweets_with_mention,f_x}=zipf_distribution_for_given_x(index+1,numNodes)
 
         user_array_list=:ets.lookup(:users,client_name)
         user_list=Enum.at(user_array_list,0)
         users_tuple=elem(user_list,1)
-
-
-
-          #      process_map=%{:node_client => nil, :hashTags => [], :password => nil, :has_subscribed_to => [], :is_subscribed_by => [],:name_node => nil, :id => nil, :no_of_zipf_tweets =>0, :probability_of_zipf_functions=>0, :number_of_subscribers=>0 }
          
          {_,state_random_is_subscribed_by}=Map.get_and_update(users_tuple,:no_of_zipf_tweets, fn current_value -> {current_value,num_tweets+num_tweets_with_mention} end)
          users_tuple=Map.merge(users_tuple,state_random_is_subscribed_by)
@@ -606,20 +566,16 @@ def zipf_distribution(client_name,client_node_name,numNodes,list) do
          {_,state_number}=Map.get_and_update(users_tuple,:probability_of_zipf_functions, fn current_value -> {current_value,f_x} end)
          users_tuple=Map.merge(users_tuple,state_number)
 
-         #IO.inspect users_tuple
+         #IO.inspect  users_tuple
+
 
          :ets.delete(:users, client_name)
          :ets.insert(:users, {client_name,users_tuple})
 
-         #periodic_print_zipf_distribution(client_node_name)
-         #{:noreply,state}
-
 end
 
 
-
-
-def zipf_distribution_for_given_x(x,numNodes,client_name,client_node_name)do
+def zipf_distribution_for_given_x(x,numNodes)do
         c=:math.pow(Enum.reduce(Enum.to_list(1..numNodes),0,fn(x,acc)->:math.pow(1/x,@s)+acc end),-1)
 
         f_x=(c/(:math.pow(x,@s)))
@@ -630,16 +586,17 @@ def zipf_distribution_for_given_x(x,numNodes,client_name,client_node_name)do
         
 end
 
+def handle_cast({:zipf_distribution},state) do
+        IO.puts "Start Zipf Distribution"
+        start_zipf_distribution()
+        {:noreply,state}
+end
+
 def start_zipf_distribution()do
          array_list=:ets.lookup(:user_list, "user_list")
          elem_tuple=Enum.at(array_list,0)
          list=elem(elem_tuple,1)
-
-        #{name_node,node_client,0}
-
-        #IO.inspect list
-
-
+        #list = [{clientName,socket_x,value,pid}]
         Enum.each(list, fn(x) -> 
                 user_array_list=:ets.lookup(:users,elem(x,0))
                 user_list=Enum.at(user_array_list,0)
@@ -647,13 +604,30 @@ def start_zipf_distribution()do
 
                 no_of_zipf_tweets=user_tuple[:no_of_zipf_tweets]
                 number_of_subscribers=user_tuple[:number_of_subscribers]
-                IO.puts "#{inspect no_of_zipf_tweets} number of tweets for Client #{inspect elem(x,0)} of #{inspect elem(x,1)} has #{inspect number_of_subscribers} subscribers "
+                IO.puts "#{inspect no_of_zipf_tweets} number of tweets for Client #{inspect elem(x,0)} has #{inspect number_of_subscribers} subscribers "
 
                 if(no_of_zipf_tweets>0) do 
-                        Enum.each(Enum.to_list(1..no_of_zipf_tweets),fn(y) -> GenServer.cast({elem(x,0),elem(x,1)},{:tweet,elem(x,0),elem(x,1),nil})  end)   
+                        Enum.each(Enum.to_list(1..no_of_zipf_tweets),fn(y) -> 
+                                #{:got_tweet,random_tweet,random_hashTag,name_of_user,reference,isFreshUser,socket,pid}
+                                # "name_of_user" => client_name,
+                                # "hashTag" => hashTag,
+                                # "tweet" => tweet,
+                                # "reference" => reference,
+                                # "isFreshUser" => isFreshUser,
+                                # "pid" => pid
+                                #list = [{clientName,socket_x,value,pid}]
+
+                                tweet=Project4Part2.LibFunctions.randomizer(32,true)
+                                hashTag=Project4Part2.LibFunctions.randomizer(8,true)
+                                tweet=tweet<>" #"<>hashTag
+                                hashTag="#"<>hashTag              
+                                IO.puts "{\"topic\":\"pool:client\",\"ref\":\"1\",\"payload\":{\"response\":\"#{inspect elem(x,0)} has tweeted the given tweet \"#{tweet}\" with the given hashtag \"#{hashTag}\"\"},\"join_ref\":\"null\",\"event\":\"tweet\"}"                                      
+                                GenServer.cast(Boss_Server,{:got_tweet,tweet,hashTag,elem(x,0),nil,false,elem(x,1),elem(x,3)})  
+                        end)   
                 end 
          end)
 end
+
 
 
 def handle_cast({:query,clientName,pid,socket},state) do
@@ -727,38 +701,9 @@ end
          {:noreply,state}
  end
 
- def handle_cast({:increment_numClients,value,numNodes,l,fullList},state) do
-          {_,state_numClients}=Map.get_and_update(state,:count_numClients, fn current_value -> {current_value,current_value+value} end)
-          state=Map.merge(state,state_numClients)
-
-          #IO.inspect l
-          #IO.puts "++++++"
-
-        #   array_list=:ets.lookup(:user_list, "user_list")
-        #   elem_tuple=Enum.at(array_list,0)
-        #   users_array_list1=elem(elem_tuple,1)
-
-        #   users_array_list1=users_array_list1++l
-
-         #{name_of_node,client_node_name,0}
-          Enum.each(l,fn({name_of_node,client_node_name,_}) -> zipf_distribution(name_of_node,client_node_name,numNodes,l)  end)
-          #Process.sleep(1_0000)
-
-          numClients=Map.get(state, :numClients)
-          count_numClients=Map.get(state, :count_numClients)
-
-          #:ets.delete(:user_list,"user_list")
-          #:ets.insert(:user_list, {"user_list",users_array_list1})
-
-          IO.inspect "I am here"
-
-          if(numClients == count_numClients)do
-                # Handle Zipf here
-                IO.puts "Started Zipf"
-                start_zipf_distribution()
-          end
-
-          {:noreply,state}
+ def handle_cast({:calculate_zipf_tweets,l,numNodes},state)do
+        Enum.each(l,fn({clientName,socket_x,value,pid}) -> zipf_distribution(clientName,numNodes,l)  end)  
+        {:noreply,state}      
  end
 
 end

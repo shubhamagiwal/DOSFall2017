@@ -99,34 +99,20 @@ defmodule Project4Part2Web.PoolChannel do
   end
 
   def handle_cast({:update_status,status,socket,client_name,pid},state)do
-    
-    #IO.inspect "I am here #{inspect client_name} for #{status}"
-    
+        
     if(status==true)do
-      #IO.inspect "Entered"
       response=to_string(client_name)<>" has logged in" 
       push socket,"login",%{response: response}
-      #IO.inspect "I am here #{inspect client_name} for #{status} entered completed"
 
       {_,state_random_is_fresh_user}=Map.get_and_update(state,:is_logged_in, fn current_value -> {current_value,true} end)
       state=Map.merge(state,state_random_is_fresh_user)
-      #IO.inspect "I am here2"
-      
-
       GenServer.cast(Boss_Server,{:query,client_name,pid,socket})
 
-    else
-      #IO.inspect "I am here #{inspect client_name} for #{status} entered"
-      
+    else      
       response=to_string(client_name)<>" has logged out" 
       push socket,"logout",%{response: response}
-
       {_,state_random_is_fresh_user}=Map.get_and_update(state,:is_logged_in, fn current_value -> {current_value,false} end)
       state=Map.merge(state,state_random_is_fresh_user)
-
-      #IO.inspect "I am here #{inspect client_name} for #{status} left"
-      
-
     end 
 
     {:noreply,state}
@@ -142,43 +128,6 @@ defmodule Project4Part2Web.PoolChannel do
 
           {:noreply,state}
   end   
-
-  # def schedule_periodic_login_and_logout()do
-  #     Process.send_after(self(), :periodic_login_and_logout, 2*1000) 
-  # end
-
-  # def handle_info(:periodic_login_and_logout, state) do
-  #     if(state[:is_logged_in]==true)do
-  #         #Do Logout
-  #         {_,state_random_is_fresh_user}=Map.get_and_update(state,:is_logged_in, fn current_value -> {current_value,false} end)
-  #         state=Map.merge(state,state_random_is_fresh_user)
-
-  #         response=to_string(state[:name_of_node])<>" has logged out" 
-  #         push state[:socket],"logout",%{response: response}
-
-  #         IO.puts "{\"topic\":\"pool:client\",\"ref\":\"1\",\"payload\":{\"response\":\"#{response}\"},\"join_ref\":\"null\",\"event\":\"logout\"}"      
-          
-   
-  #     else
-  #         #Do Login
-  #         {_,state_random_is_fresh_user}=Map.get_and_update(state,:is_logged_in, fn current_value -> {current_value,true} end)
-  #         state=Map.merge(state,state_random_is_fresh_user)    
-
-  #         response=to_string(state[:name_of_node])<>" has logged in" 
-  #         push state[:socket],"login",%{response: response}
-
-  #         GenServer.cast(Boss_Server,{:query,state[:name_of_node],self(),state[:socket]})
-
-  #         IO.puts "{\"topic\":\"pool:client\",\"ref\":\"1\",\"payload\":{\"response\":\"#{response}\"},\"join_ref\":\"null\",\"event\":\"login\"}"      
-          
-
-  #         #IO.inspect state[:clientName]
-  #         #login(state)
-
-  #     end
-  #     #schedule_periodic_login_and_logout() 
-  #     {:noreply, state}
-  # end
 
   def handle_cast({:got_a_retweet,tweet,hashTag,client_name,reference,client_name_x,socket_x,pid_x},state)do
         
