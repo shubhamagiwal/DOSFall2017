@@ -5,13 +5,6 @@
 Shubham Agiwal 20562669, Karan Sharma 00174451
 
 ### Abstract
-This is a Twitter clone and a client tester/simulator built using Elixir.# Project-4 Part DOS Fall 2017
-## Twitter Tester/Simulator
-
-#### Team Members
-Shubham Agiwal 20562669, Karan Sharma 00174451
-
-### Abstract
 This is a Twitter clone and a client tester/simulator built using Elixir and phoenix. We have a server which is the main server which is used as a datastore. This server contains all the data about the tweets, retweets, hashtags and mentions. The datastore is maintained using ETS(Erlang Term Storage). The server is a central engine which is used to distribute tweets. Web socket interface for Twitter engine – with functionalities for Account registration, sending tweets, tweets with hashtags and mentions, re-tweets, querying and live delivery of tweets.  
 ### Runtime Commands
 > 1. Extract the contents of the zip file. <br>
