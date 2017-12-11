@@ -15,7 +15,7 @@ This is a Twitter clone and a client tester/simulator built using Elixir and pho
  We have tested our application for 100 nodes.
  
 #### Sample Input/Output
-Input ->`mix test`<br>
+Input ->`mix test --trace`<br>
 Output-> Server: <br>
 {"topic":"pool:client","ref":"1","payload":{"response":"tweeter:user83 has tweeted the given tweet "njsvyiap2uzf2wx036ow2sxyp7w4ul7a #6hccbkpe" with the given hashtag "#6hccbkpe""},"join_ref":"null","event":"tweet"}<br>
 {"topic":"pool:client","ref":"1","payload":{"response":"tweeter:user84 has tweeted the given tweet "0pj73zsji5s4ifttetg6gwjt6gxx4bgp #aejvel3j" with the given hashtag "#aejvel3j""},"join_ref":"null","event":"tweet"}<br>
