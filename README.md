@@ -59,7 +59,7 @@ Other considerations:
 -The client part (send/receive tweets) and the engine (distribute tweets) have to be in separate processes. Preferably, you use multiple independent client processes that simulate thousands of clients and a single engine process<br>
 -You need to measure various aspects of your simulator and report performance<br>
 
-###  Project 4 Part 1 Twitter Simulator using Phoenix Web sockets
+###  Project 4 Part 2 Twitter Simulator using Phoenix Web sockets
 
 Use Phoenix web framework to implement a WebSocket interface to your part I implementation. That means that, even though the Elixir implementation of your Part I project could use the Erlang messaging to allow client-server implementation, you now need to design and use a proper WebSocket interface. Specifically:
 
@@ -67,4 +67,6 @@ Use Phoenix web framework to implement a WebSocket interface to your part I impl
 - You need to re-write your engine using Phoenix to implement the WebSocket interface<br>
 - You need to re-write your client to use WebSockets.<br>
 
-Youtube Link for project 4 part 2 implementation - https://www.youtube.com/watch?v=SwTbdf50CGU
+Youtube Link for project 4 part 2 implementation - https://www.youtube.com/watch?v=SwTbdf50CGU  <br>
+
+For more implmentation details, please check the respective projects in the given repository.
