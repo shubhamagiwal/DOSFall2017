@@ -1,4 +1,4 @@
-# Project-4 Part DOS Fall 2017
+# Project-4 Part 1 DOS Fall 2017
 ## Twitter Tester/Simulator
 
 #### Team Members
